@@ -9,7 +9,10 @@ public class ConfigKey {
 
         HOME_DIR("mmo.home.dir"),
         CONF_DIR("mmo.conf.dir"),
-        APP_NAME("app.name")
+        APP_NAME("app.name"),
+        TMP_DIR("mmo.tmp.dir"),
+        TESSDATA_DIR("mmo.tessdata.dir"),
+        TESS_LANG("mmo.tess.lang")
         ;
 
         private String key;
@@ -31,6 +34,7 @@ public class ConfigKey {
         ,LOGIN_PASSWORD_ELEMENT("login.password.element")
         ,LOGIN_SUBMIT_ELEMMENT("login.submit.element")
         ,INDEX_URL("index.url")		// 主页链接
+        ,ORDER_THREAD_NUM("mmo.order.thread.num")
         ;
 
         private String key;

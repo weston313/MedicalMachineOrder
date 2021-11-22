@@ -63,36 +63,36 @@
          <children>
             <TabPane layoutX="1.0" layoutY="-1.0" prefHeight="600.0" prefWidth="900.0" tabClosingPolicy="UNAVAILABLE">
               <tabs>
-                <Tab text="仪器列表">
+                <Tab text="仪器列表" id="followTab">
                   <content>
-                    <AnchorPane accessibleText="仪器列表" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                    <AnchorPane accessibleText="仪器列表" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="0.0">
                            <children>
-                              <TableView prefHeight="570.0" prefWidth="900.0">
+                              <TableView prefHeight="600.0" prefWidth="900.0">
                                 <columns>
-                                  <TableColumn prefWidth="150.0" text="仪器名称" />
-                                    <TableColumn prefWidth="173.14288330078125" text="仪器编号" />
-                                    <TableColumn prefWidth="164.0" text="联系人" />
-                                  <TableColumn prefWidth="122.85720825195312" text="电话" />
-                                    <TableColumn prefWidth="131.428466796875" text="邮箱" />
-                                    <TableColumn minWidth="0.0" prefWidth="166.2857666015625" text="预定" />
+                                    <TableColumn prefWidth="250" text="仪器名称" />
+                                    <TableColumn prefWidth="100" text="仪器编号" />
+                                    <TableColumn prefWidth="100" text="当前使用者" />
+                                    <TableColumn prefWidth="150" text="仪器地址" />
+                                    <TableColumn prefWidth="200" text="联系人" />
+                                    <TableColumn prefWidth="100" text="操作" />
                                 </columns>
                               </TableView>
                            </children>
                         </AnchorPane>
                   </content>
                 </Tab>
-                  <Tab text="预定列表">
+                  <Tab text="预定列表" id="orderTab">
                      <content>
                         <AnchorPane accessibleText="仪器列表" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
                            <children>
                               <TableView prefHeight="570.0" prefWidth="900.0">
                                  <columns>
-                                    <TableColumn prefWidth="150.0" text="仪器名称" />
-                                    <TableColumn prefWidth="170.857177734375" text="仪器编号" />
-                                    <TableColumn prefWidth="151.4285888671875" text="开始时间" />
-                                    <TableColumn prefWidth="160.57131958007812" text="结束时间" />
-                                    <TableColumn prefWidth="134.2857666015625" text="状态" />
-                                    <TableColumn prefWidth="128.571533203125" text="操作" />
+                                     <TableColumn prefWidth="150" text="订单号" />
+                                     <TableColumn prefWidth="150" text="仪器名称" />
+                                    <TableColumn prefWidth="150" text="开始时间" />
+                                    <TableColumn prefWidth="150" text="结束时间" />
+                                    <TableColumn prefWidth="150" text="状态" />
+                                    <TableColumn prefWidth="150" text="操作" />
                                  </columns>
                               </TableView>
                            </children>

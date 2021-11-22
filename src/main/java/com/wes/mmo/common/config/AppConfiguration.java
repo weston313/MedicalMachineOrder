@@ -2,11 +2,13 @@ package com.wes.mmo.common.config;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.PropertyConfigurator;
+
 
 public class AppConfiguration {
 	
 	private static final Log LOG = LogFactory.getLog(AppConfiguration.class);
-
 	
 	private volatile static AppConfiguration configuration=null;
 	

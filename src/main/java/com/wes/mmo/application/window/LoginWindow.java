@@ -48,8 +48,7 @@ public class LoginWindow extends Application {
         VBox vBox = (VBox) loginPane.getChildren().get(0);
         List<Node> borderPanes = vBox.getChildren();
 
-        //
-        System.out.println(borderPanes.size());
+
         TextField userNameText = (TextField)((BorderPane)borderPanes.get(1)).getChildren().get(1);
         TextField passwordText = (TextField)((BorderPane)borderPanes.get(2)).getChildren().get(1);
         Button loginButton = (Button)((BorderPane)borderPanes.get(3)).getChildren().get(0);
