@@ -34,6 +34,7 @@ public class ConfigKey {
         ,LOGIN_PASSWORD_ELEMENT("login.password.element")
         ,LOGIN_SUBMIT_ELEMMENT("login.submit.element")
         ,INDEX_URL("index.url")		// 主页链接
+        ,SVG_URL("svg.url")
         ,ORDER_THREAD_NUM("mmo.order.thread.num")
         ;
 

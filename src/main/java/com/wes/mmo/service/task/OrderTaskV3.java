@@ -4,13 +4,12 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.gargoylesoftware.htmlunit.*;
 import com.gargoylesoftware.htmlunit.html.*;
-import com.gargoylesoftware.htmlunit.javascript.AbstractJavaScriptEngine;
-import com.gargoylesoftware.htmlunit.javascript.host.canvas.ext.WEBGL_compressed_texture_s3tc;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import com.wes.mmo.common.config.AppConfiguration;
 import com.wes.mmo.common.config.ConfigKey;
 import com.wes.mmo.common.cookie.CookieManagerCache;
 import com.wes.mmo.dao.EquementDetail;
+import com.wes.mmo.utils.TimeUtils;
 import javafx.beans.property.SimpleStringProperty;
 import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
@@ -23,21 +22,18 @@ import org.apache.batik.transcoder.image.PNGTranscoder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.xerces.dom.DeferredElementImpl;
+import org.openqa.selenium.JavascriptExecutor;
 import org.w3c.dom.Document;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -47,9 +43,23 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class OrderTask implements Task {
+public class OrderTaskV3 implements Task {
 
     private static final Log LOG = LogFactory.getLog(OrderTask.class);
+
+    private static final Map<String, Integer> CAPTCHA_NUMBERS_SHAPE = new HashMap();
+    static {
+        CAPTCHA_NUMBERS_SHAPE.put("MLLQLLQLLQLLQLLQLLQLLQLLQZMLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLZ", 1);
+        CAPTCHA_NUMBERS_SHAPE.put("MLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLLQLLQLLQLLQLLQLLQLLQZMLLQLLLQLLQLLQLLQLLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLLQLLQLLQLLQLLQLLLQLLLQLLQZ", 2);
+        CAPTCHA_NUMBERS_SHAPE.put("MLLQLLQLLQLLQLLLQLLQLLQLLQLLQLLQLLQLLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQZMLLQLLQLLQLLQLLQLLLLQLLQLLQLLQLLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLLLQLLQLLQLLQLLQLLQLLLLQLLQLLQLLQLLQLLQLLLLLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQZ", 3);
+        CAPTCHA_NUMBERS_SHAPE.put("MLLQLLQLLQLLQZMLLQLLQLLQLLQLLQLLQLLQLLQLLQLLLQLLQLLQLLQZMLLQLLLQLLQLLQLLQLLQLLQLLLQLLLQLLLQLLQLLQLLQLLQLLQLLQLLLQLLQLLQLLQZMLLQLLQLLQLLQLLQZ", 4);
+        CAPTCHA_NUMBERS_SHAPE.put("MLLQLLQLLQLLQLLQLLQLLQLLLLQLLQLLQLLQLLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQZMLLQLLQLLQLLQLLLLLQLLLQLLLQLLQLLQLLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLLLQLLQLLQLLQLLQZ", 5);
+        CAPTCHA_NUMBERS_SHAPE.put("MLLQLLQLLQLLQLLQLLQLLQLLQLLQZMLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQZMLLQLLQLLQLLQLLQLLQLLQLLLLQLLQLLQLLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQZMLLQLLQLLQLLQLLQLLQLLQLLQZ", 6);
+        CAPTCHA_NUMBERS_SHAPE.put("MLLQLLQLLLQLLQLLQLLQLLQLLLQLLQLLLQLLQLLQLLLQLLQLLQLLQLLQZMLLLQLLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLLLLQLLQLLQLLQLLQLLLQLLLQLLQLLQLLLQZ", 7);
+        CAPTCHA_NUMBERS_SHAPE.put("MLLQLLQLLQLLQLLQLLQLLQLLQZMLLQLLQLLQLLQLLQLLQLLQZMLLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQZMLLLQLLQLLQLLQLLLLLQLLQLLQLLQLLLLQLLLQLLQLLQLLQLLQLLQLLQLLLQLLQLLQLLQLLQZMLLQLLQLLQLLQLLQLLQLLQLLQLLQZMLLQLLLQLLQLLQLLQLLQLLQZ", 8);
+        CAPTCHA_NUMBERS_SHAPE.put("MLLLQLLQLLQLLQLLQLLQLLQLLQZMLLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQZMLLQLLQLLQLLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLLQLLQLLQLLQLLLQZMLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQLLQZ", 9);
+        CAPTCHA_NUMBERS_SHAPE.put("MLLQLLQLLQLLQLLQLLQLLQLLQLLQLLLQLLQLLQLLQLLQLLQLLLQZMLLQLLQLLQLLLQLLQLLQLLQLLLQLLLQLLQLLQLLQLLQLLQLLQLLLQLLLQZ", -1);
+    }
 
     private SimpleStringProperty id ;
     private SimpleStringProperty equement = null;
@@ -70,7 +80,7 @@ public class OrderTask implements Task {
     private int threadNum = 1;
     private ScheduledExecutorService executorService = Executors.newScheduledThreadPool(threadNum);
 
-    public OrderTask(EquementDetail equementDetail, long startTime, long endTime, String description, String relationProject, long actionTime) {
+    public OrderTaskV3(EquementDetail equementDetail, long startTime, long endTime, String description, String relationProject, long actionTime) {
         this.equementDetail = equementDetail;
         this.startTime = startTime;
         this.endTime = endTime;
@@ -78,7 +88,6 @@ public class OrderTask implements Task {
         this.relationProject = relationProject;
         this.actionTime = actionTime;
 
-        //
         this.equement = new SimpleStringProperty(equementDetail.getName());
         this.start = new SimpleStringProperty(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(startTime*1000)));
         this.end = new SimpleStringProperty(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(endTime*1000)));
@@ -87,16 +96,13 @@ public class OrderTask implements Task {
         this.id = new SimpleStringProperty(String.valueOf(System.currentTimeMillis()/1000));
     }
 
-    @Override
-    public void execute() {
-        run();
-    }
+
 
     private void run() {
         long actionTs = actionTime * 1000;
         LOG.info("======> Run Thread " + threadNum);
         for(int i = 0; i < threadNum; i++){
-            EquementOrderThread eot = new EquementOrderThread();
+            OrderTaskV3.EquementOrderThread eot = new OrderTaskV3.EquementOrderThread();
             if(System.currentTimeMillis() > actionTs){
                 executorService.execute(eot);
             }
@@ -111,6 +117,11 @@ public class OrderTask implements Task {
         executorService.shutdown();
     }
 
+    @Override
+    public void execute() {
+        run();
+    }
+
     public class EquementOrderThread extends Thread {
 
         @Override
@@ -121,21 +132,12 @@ public class OrderTask implements Task {
                 WebClient webClient = new WebClient(BrowserVersion.EDGE);
                 webClient.setCookieManager(cookieManager);
                 webClient.getOptions().setCssEnabled(false);
-                webClient.getOptions().setJavaScriptEnabled(true);
-                webClient.getOptions().setRedirectEnabled(true);
+                webClient.getOptions().setJavaScriptEnabled(false);
+                webClient.getOptions().setRedirectEnabled(false);
                 webClient.getOptions().setThrowExceptionOnScriptError(false);
-//                webClient.getOptions().setPrintContentOnFailingStatusCode(true);
-                webClient.setAjaxController(new NicelyResynchronizingAjaxController());
-                webClient.setCssErrorHandler(new SilentCssErrorHandler());
-//                webClient.getOptions().setScreenWidth(1920);
-//                webClient.getOptions().setScreenHeight(1080);
-
 
                 HtmlPage orderPage = webClient.getPage(orderUrl);
-                webClient.waitForBackgroundJavaScript(10000);
-
-
-                // 获取中间页面
+                // 获取仪器页面
                 DomNodeList<DomElement> divs = orderPage.getElementsByTagName("div");
                 HtmlElement caledarBrowser = null;
                 for(DomElement element : divs) {
@@ -146,141 +148,59 @@ public class OrderTask implements Task {
                 }
                 if(caledarBrowser == null)
                     LOG.info(orderPage.getWebResponse().getContentAsString());
+                String browserId = caledarBrowser.getId();
+                String browserSrc = caledarBrowser.getAttribute("src");
 
-                System.out.println("======> " + caledarBrowser.getElementsByTagName("table").size());
-
-
-                // 先点击一下表
-                HtmlTable calendarTable = (HtmlTable) caledarBrowser.getElementsByTagName("table").get(1);
-                HtmlTableBody calendarTableBody = (HtmlTableBody) calendarTable.getElementsByTagName("tbody").get(2);
-                HtmlTableCell calendarTableCell = (HtmlTableCell) calendarTableBody.getElementsByTagName("tr").get(10).getElementsByTagName("td").get(7);
-                calendarTableCell.mouseMove();
-
-//                HtmlTableBody calendarBody = (HtmlTableBody) calendarTable.getElementsByTagName("tbody").get(1);
-//                HtmlTableCell calendarCell = (HtmlTableCell) calendarBody.getElementsByTagName("tr").get(0).getElementsByTagName("td").get(1);
-//                HtmlDivision calendarContainer = (HtmlDivision) calendarCell.getElementsByTagName("div").get(0);
-//                DomNodeList<DomElement> tables = page1.getElementsByTagName("table");
-//                HtmlTable mouseOverTable = null;
-//                for(DomElement table : tables){
-//                    if(table.getId().startsWith("calweek_"))
-//                        mouseOverTable = (HtmlTable) table;
-//                }
-
-                HtmlTableBody calendarBody = (HtmlTableBody) calendarTable.getElementsByTagName("tbody").get(1);
-                HtmlTableCell calendarCell = (HtmlTableCell) calendarBody.getElementsByTagName("tr").get(0).getElementsByTagName("td").get(1);
-                HtmlDivision calendarContainer = (HtmlDivision) calendarCell.getElementsByTagName("div").get(0);
-                System.out.println(calendarContainer.getChildNodes().size());
-                HtmlDivision calendarDiv = null;
-                for(DomElement domElement : calendarContainer.getChildElements()){
-                    String classStr = domElement.getAttribute("class");
-                    if(classStr.equals("block block_hover block_top block_bottom")
-                            || classStr.equals("block block_rect block_top block_bottom")
-                            || classStr.equals("block block_default block_fixed block_top block_bottom")) {
-                        System.out.println("Find It");
-                        calendarDiv = (HtmlDivision) domElement;
-//                        calendarDiv.setAttribute("class","block block_rect block_top block_bottom");
-//                        calendarDiv.setAttribute("style", "overflow: hidden; z-index: 71; display: block;");
-//                        calendarDiv.setAttribute("click", "liveHandler(this);");
+                // 拼接地址
+                Date orderDate = new Date(startTime*1000);
+                Date startDate, endDate;
+                if(TimeUtils.getDayOfWeek(orderDate) == 7){
+                    startDate = TimeUtils.getToday(orderDate);
+                    endDate = TimeUtils.getNextSaturday(orderDate);
+                }
+                else {
+                    startDate = TimeUtils.getLastWeekSunday(orderDate);
+                    endDate = TimeUtils.getSaturday(orderDate);
+                }
+                StringBuffer browserTableUrlSb = new StringBuffer(browserSrc.split("\\?")[0]).append("?");
+                for(String paramKv : browserSrc.split("\\?")[1].split("\\&")) {
+                    String[] kv = paramKv.split("=");
+                    if(kv[0].equals("st")){
+                        browserTableUrlSb.append("st=").append(startDate.getTime()/1000).append("&");
                     }
-
-                }
-//                calendarDiv.mouseOver();
-//                Thread.sleep(1000);
-
-
-                calendarDiv.mouseOver();
-                webClient.waitForBackgroundJavaScript(1000);
-
-                calendarDiv.setAttribute("style", "display: block; z-index: 49; left: 1408.69px; top: 249px; width: 235px; height: 26px;");
-                calendarDiv.dblClick();
-//                calendarTableCell.click();
-                webClient.waitForBackgroundJavaScript(1000);
-
-//                System.out.println(orderPage.asXml());
-
-                DomNodeList<HtmlElement> allDivs = orderPage.getBody().getElementsByTagName("div");
-                HtmlDivision dialogDiv = null;
-                for(HtmlElement element : allDivs) {
-                    if(element.getAttribute("class").equals("dialog")) {
-                        dialogDiv = (HtmlDivision) element;
+                    if(kv[0].equals("ed")){
+                        browserTableUrlSb.append("ed=").append(endDate.getTime()/1000).append("&");
                     }
+                    else
+                        browserTableUrlSb.append(paramKv).append("&");
                 }
 
-                HtmlForm dialogForm = (HtmlForm) dialogDiv.getElementsByTagName("form").get(0);
-                HtmlTable dialogTable = (HtmlTable) dialogForm.getElementsByTagName("table").get(0);
-
-                HtmlTextInput firstTimeText = (HtmlTextInput) dialogTable.getRows().get(2).getElementsByTagName("td").get(1).getElementsByTagName("input").get(0);
-                firstTimeText.setNodeValue(String.valueOf(startTime));
-
-                HtmlTextInput endTimeText = (HtmlTextInput) dialogTable.getRows().get(3).getElementsByTagName("td").get(1).getElementsByTagName("input").get(0);
-                firstTimeText.setNodeValue(String.valueOf(endTime));
-
-                HtmlTextInput captchaText = (HtmlTextInput) dialogTable.getRows().get(4).getElementsByTagName("td").get(1).getChildNodes().get(1);
-                HtmlSvg captchaSvg = (HtmlSvg) dialogTable.getRows().get(4).getElementsByTagName("td").get(1).getChildNodes().get(3).getChildNodes().get(1);
-
-                List<HtmlElement> deleteNodes = new ArrayList<>();
-
-                for(HtmlElement path : captchaSvg.getElementsByTagName("path")){
-
-                        if(path.getAttribute("fill").equals("none")) {
-                            deleteNodes.add(path);
-                        }
-                        else {
-                            path.setAttribute("fill", "#000000");
-                            path.setAttribute("fill-rule", "evenodd");
-                            path.setAttribute("stroke", "#000000");
-                            path.setAttribute("stroke-width", "1");
-                        }
-                }
-                for(Node node : deleteNodes) {
-                    node.getParentNode().removeChild(node);
-                }
-                StringWriter writer = new StringWriter();
-                Transformer trasformer = TransformerFactory.newInstance().newTransformer();
-                trasformer.transform(new DOMSource(captchaSvg),new StreamResult(writer));
-                String svgResult = writer.toString();
-                String pngName = Thread.currentThread().getId() + "_" + System.currentTimeMillis()+".png";
-                String pngFilePath = configuration.getKey(ConfigKey.EnvKey.TMP_DIR.getKey()).getValue() + "\\" + pngName;
-                covertSvgToPng(svgResult, pngFilePath);
-                captchaText.setNodeValue(String.valueOf(getOcrReuslt(pngFilePath)));
-
-                // 点击
-                HtmlTextInput submitText = (HtmlTextInput) dialogTable.getLastChild().getFirstChild().getFirstChild().getFirstChild();
-                submitText.click();
-                webClient.waitForBackgroundJavaScript(2000);
-
-                String calendarOrderUrl = caledarBrowser.getAttribute("src");
-//                HtmlPage calendarTablePage = webClient.getPage(calendarOrderUrl);
-//                DomElement calendarTable = caledarBrowser.getElementsByTagName("table").get(1);
-
-
-
-                // 获取需要的参数
-//                String svgResult = getSvgResult(webClient, calendarTable.getId());
-//                String pngName = Thread.currentThread().getId() + "_" + System.currentTimeMillis()+".png";
-//                String pngFilePath = configuration.getKey(ConfigKey.EnvKey.TMP_DIR.getKey()).getValue() + "\\" + pngName;
-//                covertSvgToPng(svgResult, pngFilePath);
-                int result = 0;
+                browserTableUrlSb.deleteCharAt(browserTableUrlSb.length() - 1);
+                System.out.println(browserTableUrlSb.toString());
+                HtmlPage tablePage = webClient.getPage(browserTableUrlSb.toString());
+                HtmlTable calendarTable = (HtmlTable) tablePage.getElementsByTagName("table").get(0);
+                String calendarTableId = calendarTable.getId();
+                // 获取验证码ID
+                String captchaResult = getSvgResult(webClient, calendarTableId);
 
                 // 开始进行预定，并返回相应的代码
                 String orderJs = orderCaledar(
                         webClient,
-                        calendarOrderUrl,
+                        browserTableUrlSb.toString(),
                         "仪器使用预约",
                         startTime,
                         endTime,
                         calendarTable.getId(),
                         description,
                         relationProject,
-                        result
+                        captchaResult
                 );
 
-                System.out.println(orderJs);
-//
-//
-//                ScriptResult scriptResult = orderPage.executeJavaScript("1+1;");
-//                Thread.sleep(2000);
-//                System.out.println(scriptResult.getJavaScriptResult().toString());
+                JavascriptExecutor executor = CookieManagerCache.GetCookieManagerCache().getJavascriptExecutor();
+                executor.executeScript(orderJs);
+
+                Thread.sleep(5000);
+                webClient.close();
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (Exception e) {
@@ -288,9 +208,7 @@ public class OrderTask implements Task {
             }
         }
 
-        private String orderCaledar(WebClient webClient, String url, String name, long startTs, long endTs, String caledarTableId, String desc, String project, int captcha) throws IOException {
-            LOG.info("======> Order " + name + " Url " + url);
-            LOG.info("======> Order " + caledarTableId + " Calendar from " + sdf.format(new Date(startTs*1000)) + " to " + sdf.format(new Date(endTs*1000)));
+        private String orderCaledar(WebClient webClient, String url, String name, long startTs, long endTs, String caledarTableId, String desc, String project, String captcha) throws IOException {
 
             String urlParamsStr = url.split("\\?", 2)[1];
             Map<String, String> paramsMap = new HashMap<>();
@@ -298,7 +216,6 @@ public class OrderTask implements Task {
                 String[] paramKv = urlParamKvStr.split("=");
                 paramsMap.put(paramKv[0], paramKv[1]);
             }
-            LOG.info("======> Order Calendar Id " + paramsMap.get("calendar_id"));
             WebRequest request = new WebRequest(new URL(url));
             request.setHttpMethod(HttpMethod.POST);
             request.setAdditionalHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -315,12 +232,11 @@ public class OrderTask implements Task {
             params.add(new NameValuePair("dtend", String.valueOf(endTs)));
             params.add(new NameValuePair("description", desc));
             params.add(new NameValuePair("project", String.valueOf(0)));
-            params.add(new NameValuePair("captcha", String.valueOf(captcha)));
+            params.add(new NameValuePair("captcha", captcha));
             params.add(new NameValuePair("submit", "save"));
             request.setRequestParameters(params);
             UnexpectedPage page = webClient.getPage(request);
             String responseContent = page.getWebResponse().getContentAsString();
-            // System.out.println(responseContent);
             JSONObject resultObject=  JSON.parseObject(responseContent);
             // 获取ORDER JavaScript代码
             String orderJavaScript = resultObject.getJSONObject("dialog").getString("data").trim();
@@ -335,7 +251,7 @@ public class OrderTask implements Task {
         }
 
         private String getSvgResult(WebClient webClient, String caledearTableId) throws IOException, ParserConfigurationException, SAXException, TransformerException, TranscoderException {
-            String svgUrl = "http://10.1.5.22/lims/!eq_reserv/index";
+            String svgUrl = AppConfiguration.getConfiguration().getKey(ConfigKey.AppKey.SVG_URL.getKey()).getValue();
             WebRequest request = new WebRequest(new URL(svgUrl));
             request.setHttpMethod(HttpMethod.POST);
             List<NameValuePair> params = new ArrayList<>();
@@ -354,29 +270,19 @@ public class OrderTask implements Task {
             Document root = documentBuilder.parse(new ByteArrayInputStream(svgXml.getBytes()));
             NodeList nodes = root.getElementsByTagName("path");
 
-            List<Node> deleteNodes = new ArrayList<>();
+            int captchaResult = 0;
             for(int i = 0; i < nodes.getLength(); i++){
                 DeferredElementImpl pathNode = (DeferredElementImpl) nodes.item(i);
-                NamedNodeMap map = pathNode.getAttributes();
-                if(map.getNamedItem("fill").getNodeValue().equals("none")) {
-                    deleteNodes.add(pathNode);
-                }
-                else {
-                    pathNode.getAttributes().getNamedItem("fill").setNodeValue("#000000");
-                    pathNode.setAttribute("fill-rule", "evenodd");
-                    pathNode.setAttribute("stroke", "#000000");
-                    pathNode.setAttribute("stroke-width", "1");
+                String fillAttr =  pathNode.getAttribute("fill");
+                if(!fillAttr.equals("none")) {
+                    String dStr = pathNode.getAttribute("d").replaceAll("[0-9\\-\\.\\,\\s]*", "").toUpperCase();
+                    int captchaNumber = CAPTCHA_NUMBERS_SHAPE.get(dStr);
+                    if(captchaNumber >= 0)
+                        captchaResult += captchaNumber;
                 }
             }
-            for(Node node : deleteNodes) {
-                node.getParentNode().removeChild(node);
-            }
 
-            StringWriter writer = new StringWriter();
-            Transformer trasformer = TransformerFactory.newInstance().newTransformer();
-            trasformer.transform(new DOMSource(root),new StreamResult(writer));
-            return writer.toString();
-
+            return String.valueOf(captchaResult);
         }
 
         private void covertSvgToPng(String svgString, String outputName) throws IOException, TranscoderException {

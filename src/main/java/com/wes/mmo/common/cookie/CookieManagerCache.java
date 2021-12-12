@@ -12,10 +12,17 @@ import com.wes.mmo.common.config.ConfigKey;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jaxen.expr.PredicateSet;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.firefox.FirefoxOptions;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class CookieManagerCache {
 	
@@ -39,6 +46,10 @@ public class CookieManagerCache {
 	private WebClient webClient;
  	private CookieManager cookieManager;
 	private URL indexUrl;
+	private WebDriver webDriver;
+	private String orderPage;
+
+	private ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
 
 	// 创建缓存
 	private CookieManagerCache() {
@@ -48,14 +59,14 @@ public class CookieManagerCache {
 		webClient=new WebClient(BrowserVersion.FIREFOX_78);
 		webClient.getOptions().setJavaScriptEnabled(true);
 		webClient.getOptions().setCssEnabled(false);
-		webClient.getOptions().setTimeout(1000);
 		webClient.getOptions().setThrowExceptionOnScriptError(false);
 		webClient.getOptions().setRedirectEnabled(true);
+
 		try {
 			String loginUrl = configuration.getKey(ConfigKey.AppKey.LOGIN_URL.getKey()).getValue();
-			LOG.info("Login Url is " + loginUrl);
-			HtmlPage page=webClient.getPage(loginUrl);
-			webClient.waitForBackgroundJavaScript(100);
+			System.out.println("Login Url is " + loginUrl);
+			HtmlPage page = webClient.getPage(loginUrl);
+//			webClient.waitForBackgroundJavaScript(100);
 			// 进行登录
 			HtmlTextInput nameInput = page.getElementByName(configuration.getKey(ConfigKey.AppKey.LOGIN_USERNAME_ELEMENT.getKey()).getValue());
 			nameInput.setText(username);
@@ -65,11 +76,44 @@ public class CookieManagerCache {
 
 			// 填充缓存
 			indexUrl = response.getWebRequest().getUrl();
+			orderPage = indexUrl.toString() + ".reserv";
 			cookieManager=webClient.getCookieManager();
+
+			// 初始化页面
+
+			System.setProperty("webdriver.firefox.bin","D:\\Firefox\\firefox.exe");
+			System.setProperty("webdriver.gecko.driver", "D:\\MMO\\webdriver\\geckodriver.exe");
+			FirefoxOptions firefoxOptions = new FirefoxOptions();
+			firefoxOptions.setHeadless(true);
+			webDriver = new FirefoxDriver(firefoxOptions);
+
+			webDriver.get(orderPage);
+			for(com.gargoylesoftware.htmlunit.util.Cookie cookie : cookieManager.getCookies()) {
+				webDriver.manage().addCookie(new org.openqa.selenium.Cookie(cookie.getName(),cookie.getValue(), cookie.getDomain(),cookie.getPath(),cookie.getExpires()));
+			}
+			webDriver.get(orderPage);
 		} catch (FailingHttpStatusCodeException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+
+		// 保持socker
+		executorService.scheduleAtFixedRate(new Runnable() {
+				@Override
+				public void run() {
+					LOG.info("Heat Beate 5 Minute");
+					try {
+						webClient.getPage(indexUrl);
+						webDriver.get(orderPage);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+			,300
+			,300
+			,TimeUnit.SECONDS
+		);
 	}
 	
 	public CookieManager getCookieManager()
@@ -83,5 +127,9 @@ public class CookieManagerCache {
 
 	public WebClient getWebClient() {
 		return webClient;
+	}
+
+	public JavascriptExecutor getJavascriptExecutor(){
+		return (JavascriptExecutor) webDriver;
 	}
 }

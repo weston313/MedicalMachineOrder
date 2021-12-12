@@ -2,6 +2,9 @@ package com.wes.mmo.application.window;
 
 import com.wes.mmo.dao.EquementDetail;
 import com.wes.mmo.service.task.OrderTask;
+import com.wes.mmo.service.task.OrderTaskV2;
+import com.wes.mmo.service.task.OrderTaskV3;
+import com.wes.mmo.service.task.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
@@ -23,7 +26,7 @@ public class OrderWindow {
 
     public static final Log LOG = LogFactory.getLog(OrderWindow.class);
 
-    private TableView<OrderTask> orderTaskTableView;
+    private TableView<Task> orderTaskTableView;
 
     private EquementDetail equementDetail;
 
@@ -88,31 +91,35 @@ public class OrderWindow {
 
                 // 获取相关信息
                 LocalDate startDate = startDatePicker.getValue();
-                String startTimeStr = new StringBuffer().append(startDate.getYear()).append(startDate.getMonthValue()).append(startDate.getDayOfMonth())
-                        .append(startHourCheckBox.getValue().toString()).append(startMinuteCheckBox.getValue().toString()).toString();
+                String startTimeStr = new StringBuffer().append(startDate.toString())
+                        .append("-").append(startHourCheckBox.getValue().toString())
+                        .append("-").append(startMinuteCheckBox.getValue().toString()).toString();
 
                 // 获取结束时间
                 LocalDate endDate = endDatePicker.getValue();
-                String endTimeStr = new StringBuffer().append(endDate.getYear()).append(endDate.getMonthValue()).append(endDate.getDayOfMonth())
-                        .append(endHourCheckBox.getValue().toString()).append(endMinuteCheckBox.getValue().toString()).toString();
+                String endTimeStr = new StringBuffer().append(endDate.toString())
+                        .append("-").append(endHourCheckBox.getValue().toString())
+                        .append("-").append(endMinuteCheckBox.getValue().toString()).toString();
 
                 // 获取执行时间
                 LocalDate actionDate = actionDatePicker.getValue();
-                String actionTimeStr = new StringBuffer().append(actionDate.getYear()).append(actionDate.getMonthValue()).append(actionDate.getDayOfMonth())
-                        .append(actionHourChoiceBox.getValue().toString()).append(actionHourChoiceBox.getValue().toString()).toString();
+                String actionTimeStr = new StringBuffer().append(actionDate.toString())
+                        .append("-").append(actionHourChoiceBox.getValue().toString())
+                        .append("-").append(actionMinuteChoicBox.getValue().toString()).toString();
 
 
                 String relationProduct = relationProductTextField.getText();
 
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmm");
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH-mm");
                 try {
-                    OrderTask orderTask = new OrderTask(equementDetail,
+                    OrderTaskV3 orderTask = new OrderTaskV3(equementDetail,
                             sdf.parse(startTimeStr).getTime()/1000,
                             sdf.parse(endTimeStr).getTime()/1000 - 1,
-                            "", relationProduct,
+                            "",
+                            relationProduct,
                             sdf.parse(actionTimeStr).getTime()/1000);
 
-                    orderTask.run();
+                    orderTask.execute();
 
                     orderTaskTableView.getItems().add(orderTask);
 

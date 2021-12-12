@@ -13,6 +13,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
@@ -50,7 +51,7 @@ public class LoginWindow extends Application {
 
 
         TextField userNameText = (TextField)((BorderPane)borderPanes.get(1)).getChildren().get(1);
-        TextField passwordText = (TextField)((BorderPane)borderPanes.get(2)).getChildren().get(1);
+        PasswordField passwordText = (PasswordField)((BorderPane)borderPanes.get(2)).getChildren().get(1);
         Button loginButton = (Button)((BorderPane)borderPanes.get(3)).getChildren().get(0);
 
         loginButton.setOnAction(new EventHandler<ActionEvent>() {

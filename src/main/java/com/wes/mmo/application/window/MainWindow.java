@@ -123,7 +123,7 @@ public class MainWindow  {
             public TableCell call(final TableColumn<EquementDetail, String> param) {
                 final TableCell<EquementDetail, String> cell = new TableCell<EquementDetail, String>() {
 
-                    final Button btn = new Button("预定");
+                    final Button btn = new Button("Order");
 
                     @Override
                     public void updateItem(String item, boolean empty) {
@@ -172,7 +172,7 @@ public class MainWindow  {
             public TableCell call(final TableColumn<OrderTask, String> param) {
                 final TableCell<OrderTask, String> cell = new TableCell<OrderTask, String>() {
 
-                    final Button btn = new Button("停止");
+                    final Button btn = new Button("STOP");
 
                     @Override
                     public void updateItem(String item, boolean empty) {
@@ -181,7 +181,7 @@ public class MainWindow  {
                             OrderTask orderTask = getTableView().getItems().get(getIndex());
                             orderTask.stop();
                             LOG.info(orderTask.getStatus());
-                            orderTask.setStatus("结束");
+                            orderTask.setStatus("STOP");
                             taskTable.refresh();
                         });
 
