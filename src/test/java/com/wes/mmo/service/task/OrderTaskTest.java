@@ -7,9 +7,6 @@ import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import com.wes.mmo.common.config.AppConfiguration;
 import com.wes.mmo.common.config.Value;
 import com.wes.mmo.common.cookie.CookieManagerCache;
-import net.sourceforge.tess4j.ITesseract;
-import net.sourceforge.tess4j.Tesseract;
-import net.sourceforge.tess4j.TesseractException;
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
 import org.apache.batik.transcoder.TranscoderOutput;
@@ -43,7 +40,7 @@ import java.util.regex.Pattern;
 public class OrderTaskTest {
 
     @Test
-    public void testGetSvg() throws IOException, ParserConfigurationException, SAXException, TransformerException, TranscoderException, TesseractException {
+    public void testGetSvg() throws IOException, ParserConfigurationException, SAXException, TransformerException, TranscoderException {
         AppConfiguration configuration = AppConfiguration.getConfiguration();
         configuration.addKey("username", new Value("zhangsen", "normal"));
         configuration.addKey("password", new Value("Zhangsen2019", "normal"));
@@ -110,18 +107,6 @@ public class OrderTaskTest {
         fileOutputStream.flush();
 
         // testOCR();
-    }
-
-    @Test
-    public void testOCR() throws TesseractException {
-        File imageFile = new File("F:\\Product\\MMO\\tmp\\28_1638977292565.png");
-        ITesseract tesseract = new Tesseract();
-
-        tesseract.setDatapath("F:\\Product\\MMO\\tessdata\\");
-        tesseract.setLanguage("normal");
-        tesseract.setTessVariable("user_defined_dpi", "150");
-        String str = tesseract.doOCR(imageFile);
-        System.out.println(str);
     }
 
     @Test

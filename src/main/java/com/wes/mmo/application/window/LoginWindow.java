@@ -36,8 +36,8 @@ public class LoginWindow extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        stage.setTitle("医学器材预约系统");
-        // 初始化登录界面
+        stage.setTitle("Order Software");
+        // init login window
         stage.setWidth(600);
         stage.setHeight(500);
         BorderPane loginPane = FXMLLoader.load(getClass().getResource("/fxml/login/login.fxml"));
@@ -60,12 +60,11 @@ public class LoginWindow extends Application {
                 String userName = userNameText.getText();
                 String password = passwordText.getText();
 
-                // check username and password
                 if(userName == null || userName.length() == 0 || password == null || password.length() == 0) {
                     try {
                         Pane pane = FXMLLoader.load(getClass().getResource("/fxml/dialog/index.fxml"));
                         Label label = (Label) pane.getChildren().get(0);
-                        label.setText("请输入账号密码");
+                        label.setText("Set Password");
 
                         Scene dialogScene = new Scene(pane);
 
@@ -80,18 +79,14 @@ public class LoginWindow extends Application {
                 else {
                     LOG.info("Login on username " + userName );
 
-                    // 进行登录
                     AppConfiguration configuration = AppConfiguration.getConfiguration();
                     configuration.addKey(ConfigKey.AppKey.USERNAME.getKey(), new Value(userName, "UNKNOWN"));
                     configuration.addKey(ConfigKey.AppKey.PASSWORD.getKey(), new Value(password, "UNKNOWN"));
 
-                    // 进行初始化
                     CookieManagerCache.GetCookieManagerCache();
 
-                    // 退出登录界面
                     stage.close();
 
-                    // 启动主界面
 
                     try {
                         MainWindow mainWindow = MainWindow.GetInstance();

@@ -1,8 +1,6 @@
 package com.wes.mmo.application.window;
 
 import com.wes.mmo.dao.EquementDetail;
-import com.wes.mmo.service.task.OrderTask;
-import com.wes.mmo.service.task.OrderTaskV2;
 import com.wes.mmo.service.task.OrderTaskV3;
 import com.wes.mmo.service.task.Task;
 import javafx.event.ActionEvent;
@@ -60,11 +58,8 @@ public class OrderWindow {
         Scene mainScene = new Scene(orderPane);
         orderStage.setScene(mainScene);
 
-        // 初始化架构时间
         TextField equemenetName = (TextField) ((BorderPane)orderPane.getChildren().get(1)).getChildren().get(1);
 
-
-        // 初始化开始时间
         startDatePicker = parseDatePicker(orderPane, 2, 1);
         startHourCheckBox = parseCheckBox(orderPane, 2,2,0);
         startMinuteCheckBox = parseCheckBox(orderPane, 2, 2, 1);
@@ -73,7 +68,6 @@ public class OrderWindow {
         endHourCheckBox = parseCheckBox(orderPane, 3,2,0);
         endMinuteCheckBox = parseCheckBox(orderPane, 3,2,1);
 
-        // 获取定时时间
         actionDatePicker = parseDatePicker(orderPane, 4, 1);
         actionHourChoiceBox = parseCheckBox(orderPane, 4,2, 0);
         actionMinuteChoicBox = parseCheckBox(orderPane, 4,2,1);
@@ -87,21 +81,16 @@ public class OrderWindow {
             public void handle(ActionEvent actionEvent) {
                 LOG.info("Click Order Button");
 
-                // 获取仪器的信息
-
-                // 获取相关信息
                 LocalDate startDate = startDatePicker.getValue();
                 String startTimeStr = new StringBuffer().append(startDate.toString())
                         .append("-").append(startHourCheckBox.getValue().toString())
                         .append("-").append(startMinuteCheckBox.getValue().toString()).toString();
 
-                // 获取结束时间
                 LocalDate endDate = endDatePicker.getValue();
                 String endTimeStr = new StringBuffer().append(endDate.toString())
                         .append("-").append(endHourCheckBox.getValue().toString())
                         .append("-").append(endMinuteCheckBox.getValue().toString()).toString();
 
-                // 获取执行时间
                 LocalDate actionDate = actionDatePicker.getValue();
                 String actionTimeStr = new StringBuffer().append(actionDate.toString())
                         .append("-").append(actionHourChoiceBox.getValue().toString())
@@ -127,15 +116,11 @@ public class OrderWindow {
                 } catch (ParseException e) {
                     e.printStackTrace();
                 }
-
-                // 将预定信息添加到MainWindow的列表中
-
             }
 
 
         });
 
-        // 对值进行初始化
         equemenetName.setText(equementDetail.getName());
         String hour= new SimpleDateFormat("HH").format(new Date());
         startHourCheckBox.setValue(hour);

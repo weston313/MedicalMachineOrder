@@ -11,9 +11,6 @@ import com.wes.mmo.common.cookie.CookieManagerCache;
 import com.wes.mmo.dao.EquementDetail;
 import com.wes.mmo.utils.TimeUtils;
 import javafx.beans.property.SimpleStringProperty;
-import net.sourceforge.tess4j.ITesseract;
-import net.sourceforge.tess4j.Tesseract;
-import net.sourceforge.tess4j.TesseractException;
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
 import org.apache.batik.transcoder.TranscoderOutput;
@@ -26,6 +23,7 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -45,7 +43,7 @@ import java.util.regex.Pattern;
 
 public class OrderTaskV3 implements Task {
 
-    private static final Log LOG = LogFactory.getLog(OrderTask.class);
+    private static final Log LOG = LogFactory.getLog(OrderTaskV3.class);
 
     private static final Map<String, Integer> CAPTCHA_NUMBERS_SHAPE = new HashMap();
     static {
@@ -107,7 +105,8 @@ public class OrderTaskV3 implements Task {
                 executorService.execute(eot);
             }
             else {
-                executorService.schedule(eot, System.currentTimeMillis() - actionTs, TimeUnit.MILLISECONDS);
+                long stepTime = actionTs - System.currentTimeMillis();
+                executorService.schedule(eot, stepTime, TimeUnit.MILLISECONDS);
             }
             // eot.start();
         }
@@ -180,10 +179,8 @@ public class OrderTaskV3 implements Task {
                 HtmlPage tablePage = webClient.getPage(browserTableUrlSb.toString());
                 HtmlTable calendarTable = (HtmlTable) tablePage.getElementsByTagName("table").get(0);
                 String calendarTableId = calendarTable.getId();
-                // 获取验证码ID
                 String captchaResult = getSvgResult(webClient, calendarTableId);
 
-                // 开始进行预定，并返回相应的代码
                 String orderJs = orderCaledar(
                         webClient,
                         browserTableUrlSb.toString(),
@@ -260,11 +257,9 @@ public class OrderTaskV3 implements Task {
             params.add(new NameValuePair("_event", "click"));
             params.add(new NameValuePair("cal_week_rel", "#" + caledearTableId));
             request.setRequestParameters(params);
-            // 获SVG数据
             WebResponse response = webClient.getPage(request).getWebResponse();
             String svgXml = ((JSONObject)JSON.parse(response.getContentAsString())).getString("data");
 
-            // 初始化
             DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder documentBuilder =  documentBuilderFactory.newDocumentBuilder();
             Document root = documentBuilder.parse(new ByteArrayInputStream(svgXml.getBytes()));
@@ -297,30 +292,6 @@ public class OrderTaskV3 implements Task {
             );
             fileOutputStream.flush();
             fileOutputStream.close();
-        }
-
-        private int getOcrReuslt(String pngPath) throws TesseractException {
-            LOG.info("Ocr Svg and compute result.");
-            File imageFile = new File(pngPath);
-            ITesseract tesseract = new Tesseract();
-            String tessdataDir = configuration.getKey(ConfigKey.EnvKey.TESSDATA_DIR.getKey()).getValue();
-            tesseract.setDatapath(tessdataDir);
-            String tessLang = configuration.getKey(ConfigKey.EnvKey.TESS_LANG.getKey()).getValue();
-            tesseract.setLanguage(tessLang);
-            tesseract.setTessVariable("user_defined_dpi", "150");
-            String resultStr = tesseract.doOCR(imageFile);
-            char[] chars = resultStr.trim().toCharArray();
-            LOG.info("======> Ocr Result " + resultStr);
-            int result = 0;
-            if(chars.length > 1){
-                try{
-                    result = Integer.parseInt(String.valueOf(chars[0])) + Integer.parseInt(String.valueOf(chars[chars.length - 1]));
-                }
-                catch (Exception e) {
-                    LOG.info("Cannot Parse Integer String.");
-                }
-            }
-            return result;
         }
     }
 

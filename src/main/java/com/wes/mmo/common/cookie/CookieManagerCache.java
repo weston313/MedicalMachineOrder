@@ -66,23 +66,19 @@ public class CookieManagerCache {
 			String loginUrl = configuration.getKey(ConfigKey.AppKey.LOGIN_URL.getKey()).getValue();
 			System.out.println("Login Url is " + loginUrl);
 			HtmlPage page = webClient.getPage(loginUrl);
-//			webClient.waitForBackgroundJavaScript(100);
-			// 进行登录
 			HtmlTextInput nameInput = page.getElementByName(configuration.getKey(ConfigKey.AppKey.LOGIN_USERNAME_ELEMENT.getKey()).getValue());
 			nameInput.setText(username);
 			HtmlPasswordInput passwordInput = page.getElementByName(configuration.getKey(ConfigKey.AppKey.LOGIN_PASSWORD_ELEMENT.getKey()).getValue());
 			passwordInput.setText(password);
 			WebResponse response=page.getElementByName(configuration.getKey(ConfigKey.AppKey.LOGIN_SUBMIT_ELEMMENT.getKey()).getValue()).click().getWebResponse();
 
-			// 填充缓存
 			indexUrl = response.getWebRequest().getUrl();
 			orderPage = indexUrl.toString() + ".reserv";
 			cookieManager=webClient.getCookieManager();
+			
+			System.setProperty(ConfigKey.EnvKey.FIREFOX_BIN.getKey(), configuration.getKey(ConfigKey.EnvKey.FIREFOX_BIN.getKey()).getValue());
+			System.setProperty(ConfigKey.EnvKey.FIREFOX_DRIVER.getKey(), configuration.getKey(ConfigKey.EnvKey.FIREFOX_DRIVER.getKey()).getValue());
 
-			// 初始化页面
-
-			System.setProperty("webdriver.firefox.bin","D:\\Firefox\\firefox.exe");
-			System.setProperty("webdriver.gecko.driver", "D:\\MMO\\webdriver\\geckodriver.exe");
 			FirefoxOptions firefoxOptions = new FirefoxOptions();
 			firefoxOptions.setHeadless(true);
 			webDriver = new FirefoxDriver(firefoxOptions);
@@ -97,7 +93,6 @@ public class CookieManagerCache {
 			e.printStackTrace();
 		}
 
-		// 保持socker
 		executorService.scheduleAtFixedRate(new Runnable() {
 				@Override
 				public void run() {

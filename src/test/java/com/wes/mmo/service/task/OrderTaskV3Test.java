@@ -31,7 +31,6 @@ public class OrderTaskV3Test {
         options.path = "/socket.iov2/";
 //        options.reconnection = false;
 
-        // 设置表头
 //        Map<String, List<String>> headers = new HashMap<>();
 //        List<String> cookies = new ArrayList<>();
 //        cookies.add("session_lims2_cf-lite_chinablood=lggnvrkr7b4oucq1meqi78dio0; io=8tmoa4IWlmSvxUqgAAAL");
@@ -98,10 +97,8 @@ public class OrderTaskV3Test {
             while(true){
                 Thread.sleep(1000);
                 if(socket.connected()){
-                    System.out.println("已链接");
                 }
                 else {
-                    System.out.println("未链接");
                 }
             }
 //        JSONObject object = new JSONObject();

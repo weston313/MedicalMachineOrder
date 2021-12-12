@@ -6,7 +6,7 @@ import com.wes.mmo.common.config.AppConfiguration;
 import com.wes.mmo.common.config.ConfigKey;
 import com.wes.mmo.common.cookie.CookieManagerCache;
 import com.wes.mmo.dao.EquementDetail;
-import com.wes.mmo.service.task.OrderTask;
+import com.wes.mmo.service.task.OrderTaskV3;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -77,8 +77,6 @@ public class MainWindow  {
         orderTable = (TableView) ((AnchorPane) orderTab.getContent()).getChildren().get(0);
         initOrderTaskTab(orderTable);
 
-
-        // 初始化FOLLOW数据
         CookieManagerCache cookieManagerCache = CookieManagerCache.GetCookieManagerCache();
         WebClient webClient = cookieManagerCache.getWebClient();
         String followUrl = cookieManagerCache.getIndexUrl().toString() + ".follow";
@@ -160,17 +158,17 @@ public class MainWindow  {
             column.setStyle("-fx-alignment: CENTER-LEFT;");
         }
 
-        columns.get(0).setCellValueFactory(new PropertyValueFactory<OrderTask, String>("id"));
-        columns.get(1).setCellValueFactory(new PropertyValueFactory<OrderTask, String>("equement"));
-        columns.get(2).setCellValueFactory(new PropertyValueFactory<OrderTask, String>("start"));
-        columns.get(3).setCellValueFactory(new PropertyValueFactory<OrderTask, String>("end"));
-        columns.get(4).setCellValueFactory(new PropertyValueFactory<OrderTask, String>("status"));
+        columns.get(0).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("id"));
+        columns.get(1).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("equement"));
+        columns.get(2).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("start"));
+        columns.get(3).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("end"));
+        columns.get(4).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("status"));
         // 增加按钮 ,
-        columns.get(5).setCellValueFactory(new PropertyValueFactory<OrderTask, String>("action"));
-        columns.get(5).setCellFactory(new Callback<TableColumn<OrderTask, String>, TableCell<OrderTask, String>>() {
+        columns.get(5).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("action"));
+        columns.get(5).setCellFactory(new Callback<TableColumn<OrderTaskV3, String>, TableCell<OrderTaskV3, String>>() {
             @Override
-            public TableCell call(final TableColumn<OrderTask, String> param) {
-                final TableCell<OrderTask, String> cell = new TableCell<OrderTask, String>() {
+            public TableCell call(final TableColumn<OrderTaskV3, String> param) {
+                final TableCell<OrderTaskV3, String> cell = new TableCell<OrderTaskV3, String>() {
 
                     final Button btn = new Button("STOP");
 
@@ -178,7 +176,7 @@ public class MainWindow  {
                     public void updateItem(String item, boolean empty) {
                         super.updateItem(item, empty);
                         btn.setOnAction(event -> {
-                            OrderTask orderTask = getTableView().getItems().get(getIndex());
+                            OrderTaskV3 orderTask = getTableView().getItems().get(getIndex());
                             orderTask.stop();
                             LOG.info(orderTask.getStatus());
                             orderTask.setStatus("STOP");

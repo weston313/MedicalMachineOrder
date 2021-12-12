@@ -12,7 +12,9 @@ public class ConfigKey {
         APP_NAME("app.name"),
         TMP_DIR("mmo.tmp.dir"),
         TESSDATA_DIR("mmo.tessdata.dir"),
-        TESS_LANG("mmo.tess.lang")
+        TESS_LANG("mmo.tess.lang"),
+        FIREFOX_BIN("webdriver.firefox.bin"),
+        FIREFOX_DRIVER("webdriver.gecko.driver")
         ;
 
         private String key;
@@ -25,7 +27,6 @@ public class ConfigKey {
         }
     }
 
-    // 软件的应用变量名称
     public enum AppKey {
          USERNAME("username")
         ,PASSWORD("password")
