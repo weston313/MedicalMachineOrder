@@ -128,7 +128,7 @@ public class OrderTaskV3 implements Task {
             try {
                 CookieManager cookieManager = CookieManagerCache.GetCookieManagerCache().getCookieManager();
                 String orderUrl = equementDetail.getOrderUrl();
-                WebClient webClient = new WebClient(BrowserVersion.EDGE);
+                WebClient webClient = new WebClient(BrowserVersion.CHROME);
                 webClient.setCookieManager(cookieManager);
                 webClient.getOptions().setCssEnabled(false);
                 webClient.getOptions().setJavaScriptEnabled(false);
@@ -193,9 +193,9 @@ public class OrderTaskV3 implements Task {
                         captchaResult
                 );
 
+                LOG.info("======> Execute JavaScript Code ");
                 JavascriptExecutor executor = CookieManagerCache.GetCookieManagerCache().getJavascriptExecutor();
-                executor.executeScript(orderJs);
-
+                Object result = executor.executeScript(orderJs);
                 Thread.sleep(5000);
                 webClient.close();
             } catch (IOException e) {
@@ -206,13 +206,7 @@ public class OrderTaskV3 implements Task {
         }
 
         private String orderCaledar(WebClient webClient, String url, String name, long startTs, long endTs, String caledarTableId, String desc, String project, String captcha) throws IOException {
-
-            String urlParamsStr = url.split("\\?", 2)[1];
-            Map<String, String> paramsMap = new HashMap<>();
-            for(String urlParamKvStr : urlParamsStr.split("&")){
-                String[] paramKv = urlParamKvStr.split("=");
-                paramsMap.put(paramKv[0], paramKv[1]);
-            }
+            LOG.info("======> Get Order Dialog Code From "  + url);
             WebRequest request = new WebRequest(new URL(url));
             request.setHttpMethod(HttpMethod.POST);
             request.setAdditionalHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -223,7 +217,7 @@ public class OrderTaskV3 implements Task {
             params.add(new NameValuePair("cal_week_rel", "#" + caledarTableId));
             params.add(new NameValuePair("mode", "week"));
             params.add(new NameValuePair("component_id", "0"));
-            params.add(new NameValuePair("calendar_id", paramsMap.get("calendar_id")));
+            params.add(new NameValuePair("calendar_id", "#"+caledarTableId));
             params.add(new NameValuePair("name", name));
             params.add(new NameValuePair("dtstart", String.valueOf(startTs)));
             params.add(new NameValuePair("dtend", String.valueOf(endTs)));
