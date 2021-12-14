@@ -10,6 +10,11 @@ import com.wes.mmo.common.config.ConfigKey;
 import com.wes.mmo.common.cookie.CookieManagerCache;
 import com.wes.mmo.dao.EquementDetail;
 import com.wes.mmo.utils.TimeUtils;
+import io.socket.client.IO;
+import io.socket.client.Socket;
+import io.socket.emitter.Emitter;
+import io.socket.engineio.client.EngineIOException;
+import io.socket.engineio.client.transports.Polling;
 import javafx.beans.property.SimpleStringProperty;
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
@@ -20,6 +25,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.xerces.dom.DeferredElementImpl;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.firefox.FirefoxOptions;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -32,6 +40,8 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -102,7 +112,8 @@ public class OrderTaskV3 implements Task {
         for(int i = 0; i < threadNum; i++){
             OrderTaskV3.EquementOrderThread eot = new OrderTaskV3.EquementOrderThread();
             if(System.currentTimeMillis() > actionTs){
-                executorService.execute(eot);
+//                executorService.execute(eot);
+                eot.run();
             }
             else {
                 long stepTime = actionTs - System.currentTimeMillis();
@@ -126,6 +137,7 @@ public class OrderTaskV3 implements Task {
         @Override
         public void run() {
             try {
+                System.out.println("=====> Start Order");
                 CookieManager cookieManager = CookieManagerCache.GetCookieManagerCache().getCookieManager();
                 String orderUrl = equementDetail.getOrderUrl();
                 WebClient webClient = new WebClient(BrowserVersion.EDGE);
@@ -193,16 +205,83 @@ public class OrderTaskV3 implements Task {
                         captchaResult
                 );
 
-                JavascriptExecutor executor = CookieManagerCache.GetCookieManagerCache().getJavascriptExecutor();
-                executor.executeScript(orderJs);
+                System.out.println(orderJs);
 
-                Thread.sleep(5000);
+                orderOnSocketIO(orderJs);
+
                 webClient.close();
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+
+        private void orderOnSocketIO(String jsCode) throws URISyntaxException, InterruptedException {
+            String ticketId = null;
+            String ticked = null;
+            for(String jsLine : jsCode.split("[\r\n]+")){
+                if(jsLine.trim().startsWith("ticketId")){
+                    ticketId = jsLine.trim().split(":")[1].replaceAll("[',]+", "");
+                }
+                else if(jsLine.trim().startsWith("ticket")){
+                    ticked = jsLine.trim().split(":")[1].replaceAll("[',]", "");
+                }
+
+                if(ticked != null && ticketId != null)
+                    break;
+            }
+
+            IO.Options options = new IO.Options();
+            options.reconnection = false;
+            options.forceNew = true;
+            options.timeout = 1000;
+            options.path = "/socket.iov2/";
+            options.secure=true;
+            options.timestampRequests = true;
+            options.transportOptions = null;
+            String queryStr = new StringBuffer()
+                    .append("userId=").append("515")
+                    .append("&").append("userName=").append("张森")
+                    .append("&").append("ticket=").append(ticked.trim())
+                    .append("&").append("ticketId=").append(ticketId.trim())
+                    .toString();
+
+            System.out.println(queryStr);
+            options.query = queryStr;
+            Socket socket = IO.socket(new URI("http://60.28.141.5:13628/"), options).connect();
+            socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+                @Override
+                public void call(Object... args) {
+                    System.out.println("======> Open Connect");
+                }
+            }).on("error", new Emitter.Listener() {
+                @Override
+                public void call(Object... args) {
+                    System.out.println("======> Error " + args[0]);
+                }
+            }).on(Socket.EVENT_CONNECT_ERROR, new Emitter.Listener() {
+                @Override
+                public void call(Object... objects) {
+                    System.out.println("======> Connect Error " + objects[0]);
+                    EngineIOException exception = (EngineIOException) objects[0];
+                    System.out.println("======> Connect Error " + exception.code);
+                    for(StackTraceElement stackTraceElement : exception.getStackTrace()){
+                        System.out.println(stackTraceElement);
+                    }
+                }
+            });
+
+            while(true) {
+                Thread.sleep(1000);
+                if(socket.connected()) System.out.println("======> Connected");
+                else  System.out.println("======> Disconnected");
+            }
+        }
+
+        private void orderOnSeleniumFirefox(String jsCode){
+            JavascriptExecutor executor = CookieManagerCache.GetCookieManagerCache().getJavascriptExecutor();
+            executor.executeScript(jsCode);
         }
 
         private String orderCaledar(WebClient webClient, String url, String name, long startTs, long endTs, String caledarTableId, String desc, String project, String captcha) throws IOException {

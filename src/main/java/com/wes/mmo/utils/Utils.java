@@ -5,7 +5,8 @@ public class Utils {
 	private static final String MMO_CONF_DIR ="MMO_CONF_DIR";
 	
 	public static String GetConfPath() {
-		 return GetEnverimentProperty(MMO_CONF_DIR);
+//		return GetEnverimentProperty(MMO_CONF_DIR);
+		return "/Users/wozipa/test/MMO/conf";
 	}
 	
 	public static String GetEnverimentProperty(String name)

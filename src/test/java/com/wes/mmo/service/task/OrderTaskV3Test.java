@@ -2,6 +2,9 @@ package com.wes.mmo.service.task;
 
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.jsontype.impl.StdSubtypeResolver;
+import com.wes.mmo.common.config.AppConfiguration;
+import com.wes.mmo.common.config.Value;
+import com.wes.mmo.dao.EquementDetail;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 import io.socket.client.IO;
 import io.socket.client.Manager;
@@ -10,14 +13,20 @@ import io.socket.emitter.Emitter;
 import io.socket.engineio.client.EngineIOException;
 import io.socket.engineio.client.Transport;
 import io.socket.engineio.client.transports.Polling;
-import io.socket.engineio.client.transports.WebSocket;
+import okhttp3.*;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.openqa.selenium.json.Json;
 
 import javax.xml.crypto.dsig.SignatureMethod;
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.*;
 
 public class OrderTaskV3Test {
@@ -26,26 +35,19 @@ public class OrderTaskV3Test {
     public void testWebSocket(){
         IO.Options options = new IO.Options();
         options.forceNew = true;
-//        options.transports = new String[]{Polling.NAME, WebSocket.NAME};
-//        options.timeout = 250000;
+//        options.transports = new String[]{Polling.NAME};
+        options.timeout = 250000;
         options.path = "/socket.iov2/";
-//        options.reconnection = false;
+        options.reconnection=false;
 
-//        Map<String, List<String>> headers = new HashMap<>();
-//        List<String> cookies = new ArrayList<>();
-//        cookies.add("session_lims2_cf-lite_chinablood=lggnvrkr7b4oucq1meqi78dio0; io=8tmoa4IWlmSvxUqgAAAL");
-//        headers.put("Cookie", cookies);
-//        options.extraHeaders = headers;
+        StringBuffer querySb = new StringBuffer();
+        querySb.append("userId").append("515");
+        querySb.append("&").append("userName").append("张森");
+        querySb.append("&").append("ticket")
+                .append("D+ZdpH4yK+709kmLDXs6OFbwGt9XW5vlyb6a+LwZE1ROlw7L+pYS4UI64rIasruMnydtlvbrFBQeUa17m5Z62AhFs9pUs+7oRSvWnPnB+0G3FGANTGO2tV4n3Rh2sSqXsIYXYX7f2FsyfONavPY5Y2cfb3gUJdKE03HEzhm/5Po=");
+        querySb.append("&").append("ticketId").append("e7cda8229e646b97aa5bfd75ef8e4a85");
 
-
-//        Map<String, String> authMap = new HashMap<>();
-//        authMap.put("userId", "515");
-//        authMap.put("userName", "\u5f20\u68ee");
-//        authMap.put("ticket", "D+ZdpH4yK+709kmLDXs6OFbwGt9XW5vlyb6a+LwZE1ROlw7L+pYS4UI64rIasruMnydtlvbrFBQeUa17m5Z62AhFs9pUs+7oRSvWnPnB+0G3FGANTGO2tV4n3Rh2sSqXsIYXYX7f2FsyfONavPY5Y9jmcyrKBiuRu+Qr1K8n9/M=");
-//        authMap.put("ticketId", "e7cda8229e646b97aa5bfd75ef8e4a85");
-//        options.auth = authMap;
-
-        options.query = "userId=515&userName=%E5%BC%A0%E6%A3%AE&ticket=D%2BZdpH4yK%2B709kmLDXs6OFbwGt9XW5vlyb6a%2BLwZE1ROlw7L%2BpYS4UI64rIasruMnydtlvbrFBQeUa17m5Z62AhFs9pUs%2B7oRSvWnPnB%2B0G3FGANTGO2tV4n3Rh2sSqXsIYXYX7f2FsyfONavPY5Y9jmcyrKBiuRu%2BQr1K8n9%2FM%3D=&ticketId=e7cda8229e646b97aa5bfd75ef8e4a85";
+        options.query = querySb.toString();
         options.transportOptions = new HashMap<>();
         Transport.Options to = new Transport.Options();
         to.query = new HashMap<>();
@@ -148,5 +150,100 @@ public class OrderTaskV3Test {
 
         calendar.add(Calendar.DAY_OF_MONTH,  6 - orderDayOfWeek);
         System.out.println(sdf.format(calendar.getTime()));
+    }
+
+    @Test
+    public void testOkHttp() throws IOException {
+        OkHttpClient client = new OkHttpClient();
+        Request.Builder builder = new Request.Builder();
+        builder.url(new URL("http://60.28.141.5:13628/lims/login"));
+        Request request =  builder.build();
+        Call call = client.newCall(request);
+        Response response = call.execute();
+        System.out.println(response.body().string());
+    }
+
+    @Test
+    public void testOkHttpWebSocket() throws InterruptedException, MalformedURLException {
+        okhttp3.HttpUrl.Builder httpUrlBuilder = HttpUrl.get(new URL("http://60.28.141.5:13628/socket.iov2/")).newBuilder();
+        httpUrlBuilder.addEncodedQueryParameter("transport", "polling");
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
+//        List<Protocol>
+        clientBuilder.retryOnConnectionFailure(false)
+                .readTimeout(Duration.ofSeconds(3))
+                .connectTimeout(Duration.ofSeconds(3))
+                .writeTimeout(Duration.ofSeconds(3));
+        OkHttpClient client = clientBuilder.build();
+        Request.Builder builder = new Request.Builder();
+        builder.url(httpUrlBuilder.build());
+        builder.header("tranport", "polling");
+        Request request = builder.build();
+        client.dispatcher().cancelAll();
+        client.newWebSocket(request, new WebSocketListener() {
+            @Override
+            public void onOpen(@NotNull WebSocket webSocket, @NotNull Response response) {
+                System.out.println("======> Open WebSocket Connect");
+                try {
+                    System.out.println(response);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+//                webSocket.send("Hello Word");
+            }
+
+            @Override
+            public void onMessage(@NotNull WebSocket webSocket, @NotNull String text) {
+                System.out.println(text);
+            }
+
+            @Override
+            public void onClosed(@NotNull WebSocket webSocket, int code, @NotNull String reason) {
+                System.out.println("======> Connect is Closed");
+            }
+
+            @Override
+            public void onFailure(@NotNull WebSocket webSocket, @NotNull Throwable t, @Nullable Response response) {
+                try {
+                    System.out.println(t.toString());
+                    System.out.println(response.body().string());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        });
+
+
+
+        while(true){
+            System.out.println("=====> Sleep 1 Second");
+            Thread.sleep(1000);
+        }
+
+    }
+
+    @Test
+    public void testOrderTaskV3(){
+        AppConfiguration configuration = AppConfiguration.getConfiguration();
+        configuration.addKey("username", new Value("zhangsen", ""));
+        configuration.addKey("password", new Value("Zhangsen2019", ""));
+
+        EquementDetail equementDetail = new EquementDetail(
+                 "8"
+                ,"new AriaIII 流式细胞仪 (正常)"
+                ,"http://60.28.141.5:13628/lims/!equipments/equipment/index.8.reserv"
+                ,"霍莹莹"
+                ,"重点实验室 1层技术平台"
+                ,"付伟超, 梁昊岳, 于文颖, 流式值班维护帐号1"
+        );
+
+        new OrderTaskV3(
+                equementDetail,
+                1640030400,
+                1640033999,
+                "",
+                "0",
+                0
+        ).execute();
     }
 }
