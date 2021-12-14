@@ -121,4 +121,8 @@ public class CookieManagerCache {
 	public JavascriptExecutor getJavascriptExecutor(){
 		return (JavascriptExecutor) webDriver;
 	}
+
+	public WebDriver getWebDriver() {
+		return webDriver;
+	}
 }

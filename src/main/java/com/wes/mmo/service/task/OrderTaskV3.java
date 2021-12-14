@@ -4,16 +4,20 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.gargoylesoftware.htmlunit.*;
 import com.gargoylesoftware.htmlunit.html.*;
+import com.gargoylesoftware.htmlunit.util.Cookie;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
+import com.google.common.collect.Lists;
 import com.wes.mmo.common.config.AppConfiguration;
 import com.wes.mmo.common.config.ConfigKey;
 import com.wes.mmo.common.cookie.CookieManagerCache;
 import com.wes.mmo.dao.EquementDetail;
 import com.wes.mmo.utils.TimeUtils;
 import io.socket.client.IO;
+import io.socket.client.Manager;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 import io.socket.engineio.client.EngineIOException;
+import io.socket.engineio.client.Transport;
 import io.socket.engineio.client.transports.Polling;
 import javafx.beans.property.SimpleStringProperty;
 import org.apache.batik.transcoder.TranscoderException;
@@ -24,6 +28,7 @@ import org.apache.batik.transcoder.image.PNGTranscoder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.xerces.dom.DeferredElementImpl;
+import org.apache.xpath.res.XPATHErrorResources_it;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
@@ -202,7 +207,7 @@ public class OrderTaskV3 implements Task {
                         calendarTable.getId(),
                         description,
                         relationProject,
-                        captchaResult
+                        "1" //captchaResult
                 );
 
                 System.out.println(orderJs);
@@ -237,9 +242,7 @@ public class OrderTaskV3 implements Task {
             options.forceNew = true;
             options.timeout = 1000;
             options.path = "/socket.iov2/";
-            options.secure=true;
             options.timestampRequests = true;
-            options.transportOptions = null;
             String queryStr = new StringBuffer()
                     .append("userId=").append("515")
                     .append("&").append("userName=").append("张森")
@@ -249,7 +252,51 @@ public class OrderTaskV3 implements Task {
 
             System.out.println(queryStr);
             options.query = queryStr;
-            Socket socket = IO.socket(new URI("http://60.28.141.5:13628/"), options).connect();
+
+            StringBuffer cookieSb = new StringBuffer();
+            // 增加第一个COOKIE
+            WebClient webClient = CookieManagerCache.GetCookieManagerCache().getWebClient();
+
+            Cookie cookie = webClient.getCookieManager().getCookie("session_lims2_cf-lite_chinablood");
+            cookieSb.append("session_lims2_cf-lite_chinablood=" + cookie.getValue());
+
+            Socket socket = IO.socket(new URI("http://60.28.141.5:13628/"), options);
+            socket.io().on(Manager.EVENT_TRANSPORT, new Emitter.Listener() {
+                @Override
+                public void call(Object... objects) {
+                    Transport transport = (Transport) objects[0];
+                    transport.on(Transport.EVENT_REQUEST_HEADERS, new Emitter.Listener() {
+                        @Override
+                        public void call(Object... objects) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, List<String>> headers = (Map<String, List<String>>) objects[0];
+                            System.out.println("======> Add Headers ");
+                            headers.put("Cookie", Lists.newArrayList(cookieSb.toString()));
+                            headers.put("Accept-Encoding", Lists.newArrayList("gzip, deflate"));
+                            headers.put("User-Agent" , Lists.newArrayList("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0"));
+                            headers.put("Referer", Lists.newArrayList("http://60.28.141.5:13628/lims/!equipments/equipment/index.8.reserv"));
+                            headers.put("Accept", Lists.newArrayList("*/*"));
+                        }
+                    });
+
+                    transport.on(Transport.EVENT_RESPONSE_HEADERS, new Emitter.Listener() {
+                        @Override
+                        public void call(Object... objects) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, List<String>> headers = (Map<String, List<String>>) objects[0];
+                            if(headers.containsKey("Set-Cookie")) {
+                                for(String value : headers.get("Set-Cookie")){
+                                    for(String line : value.split(";")){
+                                        if(line.trim().startsWith("io="))
+                                            cookieSb.append(";").append(line.trim());
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+
             socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
                 @Override
                 public void call(Object... args) {
@@ -271,6 +318,8 @@ public class OrderTaskV3 implements Task {
                     }
                 }
             });
+
+            socket.connect();
 
             while(true) {
                 Thread.sleep(1000);
