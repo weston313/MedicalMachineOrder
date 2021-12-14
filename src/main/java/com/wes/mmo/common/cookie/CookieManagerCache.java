@@ -78,15 +78,9 @@ public class CookieManagerCache {
 			
 			System.setProperty(ConfigKey.EnvKey.FIREFOX_BIN.getKey(), configuration.getKey(ConfigKey.EnvKey.FIREFOX_BIN.getKey()).getValue());
 			System.setProperty(ConfigKey.EnvKey.FIREFOX_DRIVER.getKey(), configuration.getKey(ConfigKey.EnvKey.FIREFOX_DRIVER.getKey()).getValue());
-
 			FirefoxOptions firefoxOptions = new FirefoxOptions();
 			firefoxOptions.setHeadless(true);
 			webDriver = new FirefoxDriver(firefoxOptions);
-
-			webDriver.get(orderPage);
-			for(com.gargoylesoftware.htmlunit.util.Cookie cookie : cookieManager.getCookies()) {
-				webDriver.manage().addCookie(new org.openqa.selenium.Cookie(cookie.getName(),cookie.getValue(), cookie.getDomain(),cookie.getPath(),cookie.getExpires()));
-			}
 			webDriver.get(orderPage);
 		} catch (FailingHttpStatusCodeException | IOException e) {
 			// TODO Auto-generated catch block
