@@ -3,6 +3,7 @@ package com.wes.mmo.service.task;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.gargoylesoftware.htmlunit.*;
+import com.gargoylesoftware.htmlunit.CookieManager;
 import com.gargoylesoftware.htmlunit.html.*;
 import com.gargoylesoftware.htmlunit.util.Cookie;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
@@ -41,13 +42,8 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.io.*;
+import java.net.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -222,9 +218,12 @@ public class OrderTaskV3 implements Task {
             }
         }
 
-        private void orderOnSocketIO(String jsCode) throws URISyntaxException, InterruptedException {
+        private void orderOnSocketIO(String jsCode) throws URISyntaxException, InterruptedException, UnsupportedEncodingException {
             String ticketId = null;
             String ticked = null;
+            String userId = null;
+            String userName = null;
+            String form = null;
             for(String jsLine : jsCode.split("[\r\n]+")){
                 if(jsLine.trim().startsWith("ticketId")){
                     ticketId = jsLine.trim().split(":")[1].replaceAll("[',]+", "");
@@ -232,10 +231,18 @@ public class OrderTaskV3 implements Task {
                 else if(jsLine.trim().startsWith("ticket")){
                     ticked = jsLine.trim().split(":")[1].replaceAll("[',]", "");
                 }
-
-                if(ticked != null && ticketId != null)
-                    break;
+                else if(jsLine.trim().startsWith("userId")) {
+                    userId = jsLine.split(":")[1].replaceAll("[',]", "");
+                }
+                else if(jsLine.trim().startsWith("userName")) {
+                    userName = jsLine.split(":")[1].replaceAll("[',]", "");
+                }
+                else if(jsLine.trim().startsWith("socket.emit('yiqikong-reserv',")){
+                    String tmp = jsLine.trim().replaceAll("socket.emit\\('yiqikong-reserv',", "");
+                    form = tmp.trim().substring(0, tmp.length() - 2);
+                }
             }
+            String finalForm = form;
 
             IO.Options options = new IO.Options();
             options.reconnection = false;
@@ -244,13 +251,11 @@ public class OrderTaskV3 implements Task {
             options.path = "/socket.iov2/";
             options.timestampRequests = true;
             String queryStr = new StringBuffer()
-                    .append("userId=").append("515")
-                    .append("&").append("userName=").append("张森")
-                    .append("&").append("ticket=").append(ticked.trim())
+                    .append("userId=").append(userId)
+                    .append("&").append("userName=").append(URLEncoder.encode(userName, "UTF-8"))
+                    .append("&").append("ticket=").append(URLEncoder.encode(ticked.trim(), "UTF-8"))
                     .append("&").append("ticketId=").append(ticketId.trim())
                     .toString();
-
-            System.out.println(queryStr);
             options.query = queryStr;
 
             StringBuffer cookieSb = new StringBuffer();
@@ -274,7 +279,7 @@ public class OrderTaskV3 implements Task {
                             headers.put("Cookie", Lists.newArrayList(cookieSb.toString()));
                             headers.put("Accept-Encoding", Lists.newArrayList("gzip, deflate"));
                             headers.put("User-Agent" , Lists.newArrayList("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0"));
-                            headers.put("Referer", Lists.newArrayList("http://60.28.141.5:13628/lims/!equipments/equipment/index.8.reserv"));
+//                            headers.put("Referer", Lists.newArrayList("http://60.28.141.5:13628/lims/!equipments/equipment/index.8.reserv"));
                             headers.put("Accept", Lists.newArrayList("*/*"));
                         }
                     });
@@ -297,15 +302,26 @@ public class OrderTaskV3 implements Task {
                 }
             });
 
+
             socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
                 @Override
                 public void call(Object... args) {
                     System.out.println("======> Open Connect");
+                    socket.emit("yiqikong-reserv", JSON.parseObject(finalForm));
                 }
-            }).on("error", new Emitter.Listener() {
+            }).on(Socket.EVENT_ERROR, new Emitter.Listener() {
                 @Override
                 public void call(Object... args) {
                     System.out.println("======> Error " + args[0]);
+                    if(args[0] instanceof EngineIOException){
+                        EngineIOException engineIOException = (EngineIOException) args[0];
+                        System.out.println("=====> Error Code " + engineIOException.getCause());
+
+                        System.out.println("=====> Error Stack ");
+                        for(StackTraceElement element : engineIOException.getStackTrace()){
+                            System.out.println(element.toString());
+                        }
+                    }
                 }
             }).on(Socket.EVENT_CONNECT_ERROR, new Emitter.Listener() {
                 @Override
@@ -316,6 +332,11 @@ public class OrderTaskV3 implements Task {
                     for(StackTraceElement stackTraceElement : exception.getStackTrace()){
                         System.out.println(stackTraceElement);
                     }
+                }
+            }).on("yiqikong-reserv-reback", new Emitter.Listener() {
+                @Override
+                public void call(Object... args) {
+                    System.out.println("======> Order Result " + args[0]);
                 }
             });
 
