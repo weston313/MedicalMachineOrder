@@ -240,7 +240,7 @@ public class OrderTaskV3Test {
         new OrderTaskV3(
                 equementDetail,
                 1640030400,
-                1640033999,
+                1640032199,
                 "",
                 "0",
                 0

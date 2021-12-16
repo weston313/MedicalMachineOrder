@@ -147,6 +147,7 @@ public class OrderTaskV3 implements Task {
                 webClient.getOptions().setJavaScriptEnabled(false);
                 webClient.getOptions().setRedirectEnabled(false);
                 webClient.getOptions().setThrowExceptionOnScriptError(false);
+                webClient.getOptions().setProxyConfig(new ProxyConfig("127.0.0.1", 8888, null));
 
                 HtmlPage orderPage = webClient.getPage(orderUrl);
                 // 获取仪器页面
@@ -208,7 +209,7 @@ public class OrderTaskV3 implements Task {
 
                 System.out.println(orderJs);
 
-                orderOnSocketIO(orderJs);
+                orderOnSocketIO(webClient, orderJs);
 
                 webClient.close();
             } catch (IOException e) {
@@ -218,7 +219,7 @@ public class OrderTaskV3 implements Task {
             }
         }
 
-        private void orderOnSocketIO(String jsCode) throws URISyntaxException, InterruptedException, UnsupportedEncodingException {
+        private void orderOnSocketIO(WebClient webClient , String jsCode) throws URISyntaxException, InterruptedException, UnsupportedEncodingException {
             String ticketId = null;
             String ticked = null;
             String userId = null;
@@ -242,7 +243,8 @@ public class OrderTaskV3 implements Task {
                     form = tmp.trim().substring(0, tmp.length() - 2);
                 }
             }
-            String finalForm = form;
+
+            final JSONObject finalFormJson = JSON.parseObject(form);
 
             IO.Options options = new IO.Options();
             options.reconnection = false;
@@ -260,8 +262,6 @@ public class OrderTaskV3 implements Task {
 
             StringBuffer cookieSb = new StringBuffer();
             // 增加第一个COOKIE
-            WebClient webClient = CookieManagerCache.GetCookieManagerCache().getWebClient();
-
             Cookie cookie = webClient.getCookieManager().getCookie("session_lims2_cf-lite_chinablood");
             cookieSb.append("session_lims2_cf-lite_chinablood=" + cookie.getValue());
 
@@ -276,7 +276,7 @@ public class OrderTaskV3 implements Task {
                             @SuppressWarnings("unchecked")
                             Map<String, List<String>> headers = (Map<String, List<String>>) objects[0];
                             System.out.println("======> Add Headers ");
-                            headers.put("Cookie", Lists.newArrayList(cookieSb.toString()));
+                             headers.put("Cookie", Lists.newArrayList(cookieSb.toString()));
                             headers.put("Accept-Encoding", Lists.newArrayList("gzip, deflate"));
                             headers.put("User-Agent" , Lists.newArrayList("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0"));
 //                            headers.put("Referer", Lists.newArrayList("http://60.28.141.5:13628/lims/!equipments/equipment/index.8.reserv"));
@@ -307,7 +307,7 @@ public class OrderTaskV3 implements Task {
                 @Override
                 public void call(Object... args) {
                     System.out.println("======> Open Connect");
-                    socket.emit("yiqikong-reserv", JSON.parseObject(finalForm));
+                    socket.emit("yiqikong-reserv", finalFormJson);
                 }
             }).on(Socket.EVENT_ERROR, new Emitter.Listener() {
                 @Override
