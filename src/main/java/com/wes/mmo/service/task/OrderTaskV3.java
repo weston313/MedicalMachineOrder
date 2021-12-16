@@ -20,6 +20,7 @@ import io.socket.emitter.Emitter;
 import io.socket.engineio.client.EngineIOException;
 import io.socket.engineio.client.Transport;
 import io.socket.engineio.client.transports.Polling;
+import io.socket.yeast.Yeast;
 import javafx.beans.property.SimpleStringProperty;
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
@@ -28,6 +29,7 @@ import org.apache.batik.transcoder.image.ImageTranscoder;
 import org.apache.batik.transcoder.image.PNGTranscoder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.commons.text.translate.NumericEntityUnescaper;
 import org.apache.xerces.dom.DeferredElementImpl;
 import org.apache.xpath.res.XPATHErrorResources_it;
 import org.openqa.selenium.JavascriptExecutor;
@@ -210,6 +212,7 @@ public class OrderTaskV3 implements Task {
                 System.out.println(orderJs);
 
                 orderOnSocketIO(webClient, orderJs);
+                orderOnSeleniumFirefox(orderJs);
 
                 webClient.close();
             } catch (IOException e) {
@@ -249,21 +252,21 @@ public class OrderTaskV3 implements Task {
             IO.Options options = new IO.Options();
             options.reconnection = false;
             options.forceNew = true;
-            options.timeout = 1000;
-            options.path = "/socket.iov2/";
+            options.path = "/socket.iov2";
             options.timestampRequests = true;
             String queryStr = new StringBuffer()
-                    .append("userId=").append(userId)
+                    .append("userId=").append(URLEncoder.encode(userId, "UTF-8"))
                     .append("&").append("userName=").append(URLEncoder.encode(userName, "UTF-8"))
                     .append("&").append("ticket=").append(URLEncoder.encode(ticked.trim(), "UTF-8"))
-                    .append("&").append("ticketId=").append(ticketId.trim())
+                    .append("&").append("ticketId=").append(URLEncoder.encode(ticketId.trim(), "UTF-8"))
                     .toString();
             options.query = queryStr;
 
             StringBuffer cookieSb = new StringBuffer();
             // 增加第一个COOKIE
             Cookie cookie = webClient.getCookieManager().getCookie("session_lims2_cf-lite_chinablood");
-            cookieSb.append("session_lims2_cf-lite_chinablood=" + cookie.getValue());
+            cookieSb.append("session_lims2_cf-lite_chinablood:\"eaku1a1d2ehi8d8l7aavji43g1\"");
+
 
             Socket socket = IO.socket(new URI("http://60.28.141.5:13628/"), options);
             socket.io().on(Manager.EVENT_TRANSPORT, new Emitter.Listener() {
@@ -279,7 +282,7 @@ public class OrderTaskV3 implements Task {
                              headers.put("Cookie", Lists.newArrayList(cookieSb.toString()));
                             headers.put("Accept-Encoding", Lists.newArrayList("gzip, deflate"));
                             headers.put("User-Agent" , Lists.newArrayList("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0"));
-//                            headers.put("Referer", Lists.newArrayList("http://60.28.141.5:13628/lims/!equipments/equipment/index.8.reserv"));
+                            headers.put("Referrer", Lists.newArrayList("strict-origin-when-cross-origin"));
                             headers.put("Accept", Lists.newArrayList("*/*"));
                         }
                     });
@@ -287,22 +290,13 @@ public class OrderTaskV3 implements Task {
                     transport.on(Transport.EVENT_RESPONSE_HEADERS, new Emitter.Listener() {
                         @Override
                         public void call(Object... objects) {
-                            @SuppressWarnings("unchecked")
-                            Map<String, List<String>> headers = (Map<String, List<String>>) objects[0];
-                            if(headers.containsKey("Set-Cookie")) {
-                                for(String value : headers.get("Set-Cookie")){
-                                    for(String line : value.split(";")){
-                                        if(line.trim().startsWith("io="))
-                                            cookieSb.append(";").append(line.trim());
-                                    }
-                                }
-                            }
+
                         }
                     });
                 }
             });
 
-
+            System.out.println(finalFormJson.toString());
             socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
                 @Override
                 public void call(Object... args) {
@@ -337,16 +331,14 @@ public class OrderTaskV3 implements Task {
                 @Override
                 public void call(Object... args) {
                     System.out.println("======> Order Result " + args[0]);
+                    socket.disconnect();
                 }
             });
 
+
             socket.connect();
 
-            while(true) {
-                Thread.sleep(1000);
-                if(socket.connected()) System.out.println("======> Connected");
-                else  System.out.println("======> Disconnected");
-            }
+            Thread.sleep(1000);
         }
 
         private void orderOnSeleniumFirefox(String jsCode){

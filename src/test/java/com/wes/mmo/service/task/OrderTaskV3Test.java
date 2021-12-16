@@ -13,6 +13,8 @@ import io.socket.emitter.Emitter;
 import io.socket.engineio.client.EngineIOException;
 import io.socket.engineio.client.Transport;
 import io.socket.engineio.client.transports.Polling;
+import io.socket.parseqs.ParseQS;
+import io.socket.yeast.Yeast;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -245,5 +247,15 @@ public class OrderTaskV3Test {
                 "0",
                 0
         ).execute();
+    }
+
+    @Test
+    public void testYeast(){
+//        long ts = System.currentTimeMillis();
+//        String t = Yeast.yeast();
+//         1639671576182
+//        System.out.println(t);
+        System.out.println(Yeast.decode("Nt4JD6q"));
+        System.out.println(Yeast.decode("Nt488nb"));
     }
 }
