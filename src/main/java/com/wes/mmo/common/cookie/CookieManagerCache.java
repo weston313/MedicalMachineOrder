@@ -48,7 +48,6 @@ public class CookieManagerCache {
 	private WebClient webClient;
  	private CookieManager cookieManager;
 	private URL indexUrl;
-	private WebDriver webDriver;
 	private String orderPage;
 
 	private ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
@@ -77,24 +76,6 @@ public class CookieManagerCache {
 			indexUrl = response.getWebRequest().getUrl();
 			orderPage = indexUrl.toString() + ".reserv";
 			cookieManager=webClient.getCookieManager();
-
-			System.setProperty(ConfigKey.EnvKey.FIREFOX_BIN.getKey(), configuration.getKey(ConfigKey.EnvKey.FIREFOX_BIN.getKey()).getValue());
-			System.setProperty(ConfigKey.EnvKey.FIREFOX_DRIVER.getKey(), configuration.getKey(ConfigKey.EnvKey.FIREFOX_DRIVER.getKey()).getValue());
-			FirefoxOptions firefoxOptions = new FirefoxOptions();
-			firefoxOptions.setHeadless(true);
-			firefoxOptions.setProxy(new Proxy().setHttpProxy("127.0.0.1:8888"));
-			webDriver = new FirefoxDriver(firefoxOptions);
-			webDriver.get(orderPage);
-			for(Cookie cookie : cookieManager.getCookies()){
-				webDriver.manage().addCookie(new org.openqa.selenium.Cookie(
-						cookie.getName(),
-						cookie.getValue(),
-						cookie.getDomain(),
-						cookie.getPath(),
-						cookie.getExpires()
-				));
-			}
-			webDriver.get(orderPage);
 		} catch (FailingHttpStatusCodeException | IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -106,7 +87,6 @@ public class CookieManagerCache {
 					LOG.info("Heat Beate 5 Minute");
 					try {
 						webClient.getPage(indexUrl);
-						webDriver.get(orderPage);
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -129,13 +109,5 @@ public class CookieManagerCache {
 
 	public WebClient getWebClient() {
 		return webClient;
-	}
-
-	public JavascriptExecutor getJavascriptExecutor(){
-		return (JavascriptExecutor) webDriver;
-	}
-
-	public WebDriver getWebDriver() {
-		return webDriver;
 	}
 }

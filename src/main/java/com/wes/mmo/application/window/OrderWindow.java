@@ -2,7 +2,6 @@ package com.wes.mmo.application.window;
 
 import com.wes.mmo.dao.EquementDetail;
 import com.wes.mmo.service.task.OrderTaskV3;
-import com.wes.mmo.service.task.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
@@ -24,7 +23,7 @@ public class OrderWindow {
 
     public static final Log LOG = LogFactory.getLog(OrderWindow.class);
 
-    private TableView<Task> orderTaskTableView;
+    private TableView<Thread> orderTaskTableView;
 
     private EquementDetail equementDetail;
 
@@ -108,7 +107,7 @@ public class OrderWindow {
                             relationProduct,
                             sdf.parse(actionTimeStr).getTime()/1000);
 
-                    orderTask.execute();
+                    orderTask.start();
 
                     orderTaskTableView.getItems().add(orderTask);
 

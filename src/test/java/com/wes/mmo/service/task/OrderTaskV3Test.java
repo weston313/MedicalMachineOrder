@@ -235,28 +235,36 @@ public class OrderTaskV3Test {
     }
 
     @Test
-    public void testOrderTaskV3(){
+    public void testOrderTaskV3() throws InterruptedException {
         AppConfiguration configuration = AppConfiguration.getConfiguration();
         configuration.addKey("username", new Value("zhangsen", ""));
         configuration.addKey("password", new Value("Zhangsen2019", ""));
 
         EquementDetail equementDetail = new EquementDetail(
                  "8"
-                ,"new AriaIII 流式细胞仪 (正常)"
+                ,"new AriaIII"
                 ,"http://60.28.141.5:13628/lims/!equipments/equipment/index.8.reserv"
-                ,"霍莹莹"
-                ,"重点实验室 1层技术平台"
-                ,"付伟超, 梁昊岳, 于文颖, 流式值班维护帐号1"
+                ,"huoyingying"
+                ,"first floor"
+                ,"1"
         );
 
-        new OrderTaskV3(
+        Thread thread = new OrderTaskV3(
                 equementDetail,
                 1640030400,
-                1640032199,
+                1640033999,
                 "",
                 "0",
                 0
-        ).execute();
+        );
+        thread.start();
+
+        boolean over = false;
+        while(!over){
+            Thread.sleep(1000);
+            over = true;
+            if(thread.isAlive()) over = false;
+        }
     }
 
     @Test

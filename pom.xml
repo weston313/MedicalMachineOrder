@@ -155,12 +155,6 @@
             <version>1.0.1</version>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>io.socket</groupId>-->
-<!--            <artifactId>engine.io-client</artifactId>-->
-<!--            <version>1.0.2</version>-->
-<!--        </dependency>-->
-
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>

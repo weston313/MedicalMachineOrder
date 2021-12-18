@@ -52,8 +52,6 @@ public class MainWindow  {
 
     }
 
-    private String tableBodyName = "tbody";
-
     public void initlize() throws IOException {
         mainStage = new Stage();
         mainStage.setTitle(configuration.getKey(ConfigKey.EnvKey.APP_NAME.getKey()).getValue());
@@ -158,7 +156,7 @@ public class MainWindow  {
             column.setStyle("-fx-alignment: CENTER-LEFT;");
         }
 
-        columns.get(0).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("id"));
+        columns.get(0).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("index"));
         columns.get(1).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("equement"));
         columns.get(2).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("start"));
         columns.get(3).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("end"));
