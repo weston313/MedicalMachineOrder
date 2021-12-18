@@ -15,8 +15,7 @@ public class Utils {
 		}
 	}
 	
-	public static String GetEnverimentProperty(String name)
-	{
+	public static String GetEnverimentProperty(String name) {
 		String path=System.getProperty(name);
 		if(path==null || path.isEmpty()) {
 			return System.getenv(name);
@@ -24,4 +23,7 @@ public class Utils {
 		return path;
 	}
 
+	public static String ConvertDecToHex(long dec){
+		return String.format("%08X", dec);
+	}
 }

@@ -59,7 +59,7 @@ public class CookieManagerCache {
 		String username=configuration.getKey(ConfigKey.AppKey.USERNAME.getKey()).getValue();
 		String password=configuration.getKey(ConfigKey.AppKey.PASSWORD.getKey()).getValue();
 		webClient=new WebClient(BrowserVersion.FIREFOX_78);
-		webClient.getOptions().setJavaScriptEnabled(true);
+		webClient.getOptions().setJavaScriptEnabled(false);
 		webClient.getOptions().setCssEnabled(false);
 		webClient.getOptions().setThrowExceptionOnScriptError(false);
 		webClient.getOptions().setRedirectEnabled(true);
@@ -77,7 +77,7 @@ public class CookieManagerCache {
 			indexUrl = response.getWebRequest().getUrl();
 			orderPage = indexUrl.toString() + ".reserv";
 			cookieManager=webClient.getCookieManager();
-			
+
 			System.setProperty(ConfigKey.EnvKey.FIREFOX_BIN.getKey(), configuration.getKey(ConfigKey.EnvKey.FIREFOX_BIN.getKey()).getValue());
 			System.setProperty(ConfigKey.EnvKey.FIREFOX_DRIVER.getKey(), configuration.getKey(ConfigKey.EnvKey.FIREFOX_DRIVER.getKey()).getValue());
 			FirefoxOptions firefoxOptions = new FirefoxOptions();

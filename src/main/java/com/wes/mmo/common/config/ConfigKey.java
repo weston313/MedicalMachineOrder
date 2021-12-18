@@ -37,6 +37,7 @@ public class ConfigKey {
         ,INDEX_URL("index.url")		// 主页链接
         ,SVG_URL("svg.url")
         ,ORDER_THREAD_NUM("mmo.order.thread.num")
+        ,WEB_SOCKET_ADDRESS("mmo.web_socket.address")
         ;
 
         private String key;

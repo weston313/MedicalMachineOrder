@@ -1,10 +1,12 @@
 package com.wes.mmo.service.task;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.jsontype.impl.StdSubtypeResolver;
 import com.wes.mmo.common.config.AppConfiguration;
 import com.wes.mmo.common.config.Value;
 import com.wes.mmo.dao.EquementDetail;
+import com.wes.mmo.utils.Utils;
 import io.netty.handler.codec.serialization.ObjectEncoder;
 import io.socket.client.IO;
 import io.socket.client.Manager;
@@ -16,12 +18,20 @@ import io.socket.engineio.client.transports.Polling;
 import io.socket.parseqs.ParseQS;
 import io.socket.yeast.Yeast;
 import okhttp3.*;
+import org.apache.xerces.dom.DeferredElementImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 import org.openqa.selenium.json.Json;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import javax.xml.crypto.dsig.SignatureMethod;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -257,5 +267,57 @@ public class OrderTaskV3Test {
 //        System.out.println(t);
         System.out.println(Yeast.decode("Nt4JD6q"));
         System.out.println(Yeast.decode("Nt488nb"));
+    }
+
+    @Test
+    public void testOhHttpCatpcha() throws IOException, SAXException, ParserConfigurationException {
+
+        String calendarTableId = "calweek_" + Utils.ConvertDecToHex(System.currentTimeMillis() * 1048).toLowerCase();
+
+        // initlize url and request info
+        HttpUrl.Builder urlBuilder = HttpUrl.parse("http://60.28.141.5:13628/lims/!eq_reserv/index").newBuilder();
+        Request.Builder requestBuilder =  new Request.Builder();
+        requestBuilder.addHeader("Cookie", "session_lims2_cf-lite_chinablood=dgu5jl1rmqrflrig1ch1v6cb73; io=Ys4ywt8gXfbdvwj6AASK")
+                .addHeader("Content-Type", "application/x-www-form-urlencoded")
+        ;
+
+        FormBody.Builder formBodyBuilder = new FormBody.Builder();
+        formBodyBuilder.add("_ajax", "1")
+                .add("_object", "get_captcha")
+                .add("_event", "click")
+                .add("cal_week_rel", "#" + calendarTableId);
+
+        Request request = requestBuilder
+                .url(urlBuilder.build())
+                .post(formBodyBuilder.build())
+                .build();
+
+        // intlize request info
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
+        OkHttpClient client = clientBuilder.readTimeout(Duration.ofSeconds(20)).build();
+
+        // send request and get response
+        Response response = client.newCall(request).execute();
+        ResponseBody responseBody = response.body();
+        System.out.println(responseBody.string());
+
+//        String svgXml =  ((JSONObject) JSON.parse(responseBody.string())).getString("data");
+//
+//        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+//        DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+//        Document root = documentBuilder.parse(new ByteArrayInputStream(svgXml.getBytes()));
+//        NodeList nodes = root.getElementsByTagName("path");
+//
+//        int captchaResult = 0;
+//        for (int i = 0; i < nodes.getLength(); i++) {
+//            DeferredElementImpl pathNode = (DeferredElementImpl) nodes.item(i);
+//            String fillAttr = pathNode.getAttribute("fill");
+//            if (!fillAttr.equals("none")) {
+//                String dStr = pathNode.getAttribute("d").replaceAll("[0-9\\-\\.\\,\\s]*", "").toUpperCase();
+//                int captchaNumber = OrderTaskV3.CAPTCHA_NUMBERS_SHAPE.get(dStr);
+//                if (captchaNumber >= 0)
+//                    captchaResult += captchaNumber;
+//            }
+//        }
     }
 }
