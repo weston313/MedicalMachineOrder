@@ -148,11 +148,29 @@
                      <items>
                         <FXCollections fx:factory="observableArrayList">
                            <String fx:value="00" />
+                           <String fx:value="03" />
+                           <String fx:value="05" />
+                           <String fx:value="08" />
                            <String fx:value="10" />
+                           <String fx:value="13" />
+                           <String fx:value="15" />
+                           <String fx:value="18" />
                            <String fx:value="20" />
+                           <String fx:value="23" />
+                           <String fx:value="25" />
+                           <String fx:value="28" />
                            <String fx:value="30" />
+                           <String fx:value="33" />
+                           <String fx:value="35" />
+                           <String fx:value="38" />
                            <String fx:value="40" />
+                           <String fx:value="43" />
+                           <String fx:value="45" />
+                           <String fx:value="48" />
                            <String fx:value="50" />
+                           <String fx:value="53" />
+                           <String fx:value="55" />
+                           <String fx:value="58" />
                         </FXCollections>
                      </items>
                   </ChoiceBox>

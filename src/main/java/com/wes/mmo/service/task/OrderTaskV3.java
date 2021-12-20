@@ -133,44 +133,37 @@ public class OrderTaskV3 extends Thread {
     @Override
     public void run() {
         long actionTs = actionTime * 1000;
-        long threadNum = (endTime - startTime + 1) / 1800;
+        long threadNum = (endTime - startTime + 1) / 3600;
         this.executorService = Executors.newScheduledThreadPool((int) threadNum);
 
-        List<Thread> threadList = new ArrayList<>();
         if(System.currentTimeMillis() > actionTs){
             LOG.info("Orderring by using " + threadNum + " thread right now.");
-            for(long i = 1; i <= threadNum; i++) {
+            for(int i = 1; i <= threadNum; i++) {
                 Thread thread = new EquementOrderThread(
                         i,
-                        startTime + (i - 1) * 1800,
-                        startTime + i*1800 - 1
+                        startTime + (i - 1) * 3600,
+                        startTime + i*3600 - 1
                 );
-                thread.start();
-                threadList.add(thread);
+                executorService.schedule(thread, 5000, TimeUnit.MILLISECONDS);
             }
         }
         else {
-            long stepTime = actionTs - System.currentTimeMillis();
-            for(long i = 1; i <= threadNum; i++){
-                Thread thread = new EquementOrderThread(i, startTime + (i - 1) * 1800, startTime + i*1800 - 1);
+            for(int i = 1; i <= threadNum; i++){
+                Thread thread = new EquementOrderThread(
+                        i,
+                        startTime + (i - 1) * 3600,
+                        startTime + i*3600 - 1
+                );
+                long stepTime = actionTs - System.currentTimeMillis();
                 executorService.schedule(thread, stepTime, TimeUnit.MILLISECONDS);
-                threadList.add(thread);
             }
         }
 
-        try{
-            boolean allOver = false;
-            while(!allOver){
-                Thread.sleep(3000);
-                allOver = true;
-                for(Thread thread : threadList){
-                    if(thread.isAlive()) allOver = false;
-                }
-            }
+        try {
+            Thread.sleep(1000 * 60);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
     }
 
     public class EquementOrderThread extends Thread {
@@ -190,6 +183,7 @@ public class OrderTaskV3 extends Thread {
             this.threadEndTime = threadEndTime;
             createCookie();
             initlize();
+            LOG.info("======> Complete Initlize on " + System.currentTimeMillis());
         }
 
         private void initlize(){
@@ -245,12 +239,15 @@ public class OrderTaskV3 extends Thread {
         @Override
         public void run() {
             try {
-                LOG.info("======> Order from " + threadStartTime + " to " + threadEndTime);
                 String calendarTableId = "calweek_" + Utils.ConvertDecToHex(System.currentTimeMillis() * (1047+index)).toLowerCase();
+
+                LOG.info("======> Order from " + threadStartTime + " to " + threadEndTime  + " Using "  + threadCookie.getValue() + " On " + System.currentTimeMillis());
+                long a = System.currentTimeMillis();
                 String captchaResult = getSvgResultV2(calendarTableId);
                 String orderJs = orderCaledarV2(threadTableBrowserUrl, "仪器使用预约", threadStartTime, threadEndTime, calendarTableId, description, relationProject, captchaResult);
+                long b = System.currentTimeMillis();
+                System.out.println("======> Compute Svg and Get Ticket Info Use " + (b-a));
                 orderOnSocketIO(orderJs);
-
                 Thread.sleep(60000);
                 this.executorService.shutdown();
             } catch (Exception e) {
@@ -300,6 +297,7 @@ public class OrderTaskV3 extends Thread {
         }
 
         public String getSvgResultV2(String caledearTableId){
+            LOG.info("======> Compute Svg Result.");
             String captchaResult = "0";
             try {
                 // initlize url and request info
@@ -357,6 +355,8 @@ public class OrderTaskV3 extends Thread {
         }
 
         private void orderOnSocketIO(String jsCode) throws URISyntaxException, InterruptedException, UnsupportedEncodingException {
+            LOG.info("======> Order Canlendar By WebSocket.");
+
             String ticketId = null;
             String ticked = null;
             String userId = null;
@@ -419,6 +419,7 @@ public class OrderTaskV3 extends Thread {
 
         private String orderCaledarV2(String url, String name, long startTs, long endTs, String caledarTableId, String desc, String project, String captcha) throws IOException {
 
+            LOG.info("======> Start Order Calendar.");
             FormBody formBody = new FormBody.Builder()
                     .add("_ajax", "1")
                     .add("_object", "component_form")
