@@ -251,20 +251,16 @@ public class OrderTaskV3Test {
 
         Thread thread = new OrderTaskV3(
                 equementDetail,
-                1640030400,
-                1640033999,
+                1640570400,  // 1640545200
+                1640570400 + 3600,
                 "",
                 "0",
-                0
+                 System.currentTimeMillis()/1000 + 300
         );
         thread.start();
 
-        boolean over = false;
-        while(!over){
-            Thread.sleep(1000);
-            over = true;
-            if(thread.isAlive()) over = false;
-        }
+
+        Thread.sleep(3600000);
     }
 
     @Test
@@ -273,8 +269,8 @@ public class OrderTaskV3Test {
 //        String t = Yeast.yeast();
 //         1639671576182
 //        System.out.println(t);
-        System.out.println(Yeast.decode("Nt4JD6q"));
-        System.out.println(Yeast.decode("Nt488nb"));
+        System.out.println(Yeast.decode("Nt6T6_j"));
+        System.out.println(Yeast.decode("Nt6T6mE"));
     }
 
     @Test

@@ -136,7 +136,7 @@ public class OrderTaskV3 extends Thread {
         long threadNum = (endTime - startTime + 1) / 3600;
         this.executorService = Executors.newScheduledThreadPool((int) threadNum);
 
-        if(System.currentTimeMillis() > actionTs){
+        if(System.currentTimeMillis() > actionTs) {
             LOG.info("Orderring by using " + threadNum + " thread right now.");
             for(int i = 1; i <= threadNum; i++) {
                 Thread thread = new EquementOrderThread(
@@ -144,11 +144,17 @@ public class OrderTaskV3 extends Thread {
                         startTime + (i - 1) * 3600,
                         startTime + i*3600 - 1
                 );
-                executorService.schedule(thread, 5000, TimeUnit.MILLISECONDS);
+//                thread.start();
+                executorService.schedule(thread, 3000, TimeUnit.MILLISECONDS);
             }
         }
         else {
             for(int i = 1; i <= threadNum; i++){
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
                 Thread thread = new EquementOrderThread(
                         i,
                         startTime + (i - 1) * 3600,
@@ -176,6 +182,8 @@ public class OrderTaskV3 extends Thread {
         private Cookie threadCookie;
         private String threadCalendarId;
         private String threadTableBrowserUrl;
+        private String threadCalendarTableId;
+        private String threadCaptchResult;
 
         private  EquementOrderThread(long index, long threadStartTime, long threadEndTime){
             this.index = index;
@@ -183,6 +191,8 @@ public class OrderTaskV3 extends Thread {
             this.threadEndTime = threadEndTime;
             createCookie();
             initlize();
+            threadCalendarTableId = "calweek_" + Utils.ConvertDecToHex(System.currentTimeMillis() * (1047+index)).toLowerCase();
+            threadCaptchResult = getSvgResultV2(threadCalendarTableId);
             LOG.info("======> Complete Initlize on " + System.currentTimeMillis());
         }
 
@@ -239,16 +249,14 @@ public class OrderTaskV3 extends Thread {
         @Override
         public void run() {
             try {
-                String calendarTableId = "calweek_" + Utils.ConvertDecToHex(System.currentTimeMillis() * (1047+index)).toLowerCase();
-
                 LOG.info("======> Order from " + threadStartTime + " to " + threadEndTime  + " Using "  + threadCookie.getValue() + " On " + System.currentTimeMillis());
                 long a = System.currentTimeMillis();
-                String captchaResult = getSvgResultV2(calendarTableId);
-                String orderJs = orderCaledarV2(threadTableBrowserUrl, "仪器使用预约", threadStartTime, threadEndTime, calendarTableId, description, relationProject, captchaResult);
+//                Thread.sleep(120000);
+                String orderJs = orderCaledarV2(threadTableBrowserUrl, "仪器使用预约", threadStartTime,
+                        threadEndTime, threadCalendarTableId, description, relationProject, threadCaptchResult);
                 long b = System.currentTimeMillis();
                 System.out.println("======> Compute Svg and Get Ticket Info Use " + (b-a));
                 orderOnSocketIO(orderJs);
-                Thread.sleep(60000);
                 this.executorService.shutdown();
             } catch (Exception e) {
                 LOG.error(e.getMessage());
@@ -297,10 +305,9 @@ public class OrderTaskV3 extends Thread {
         }
 
         public String getSvgResultV2(String caledearTableId){
-            LOG.info("======> Compute Svg Result.");
+            LOG.info("======> Compute Svg Result By " + caledearTableId);
             String captchaResult = "0";
             try {
-                // initlize url and request info
                 String captchaUrl = AppConfiguration.getConfiguration().getKey(ConfigKey.AppKey.SVG_URL.getKey()).getValue();
 
                 FormBody formBody = new FormBody.Builder()
@@ -319,6 +326,7 @@ public class OrderTaskV3 extends Thread {
 
                 OkHttpClient client = new OkHttpClient.Builder().readTimeout(Duration.ofSeconds(20)).build();
 
+                LOG.info("======> Get SVG on " + System.currentTimeMillis());
                 Response response = client.newCall(request).execute();
                 String svgXmlStr = response.body().string();
                 String svgXml = ((JSONObject) JSON.parse(svgXmlStr)).getString("data");
@@ -414,7 +422,6 @@ public class OrderTaskV3 extends Thread {
             });
 
             socket.connect();
-            Thread.sleep(2000);
         }
 
         private String orderCaledarV2(String url, String name, long startTs, long endTs, String caledarTableId, String desc, String project, String captcha) throws IOException {
