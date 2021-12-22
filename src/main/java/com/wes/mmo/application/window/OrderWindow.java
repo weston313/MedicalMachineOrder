@@ -2,6 +2,7 @@ package com.wes.mmo.application.window;
 
 import com.wes.mmo.dao.EquementDetail;
 import com.wes.mmo.service.task.OrderTaskV3;
+import com.wes.mmo.service.task.TaskCache;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
@@ -100,18 +101,20 @@ public class OrderWindow {
 
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH-mm");
                 try {
+                    long actionTimestamp = sdf.parse(actionTimeStr).getTime();
                     OrderTaskV3 orderTask = new OrderTaskV3(equementDetail,
                             sdf.parse(startTimeStr).getTime()/1000,
                             sdf.parse(endTimeStr).getTime()/1000 - 1,
                             "",
                             relationProduct,
-                            sdf.parse(actionTimeStr).getTime()/1000);
-
-                    orderTask.start();
+                            actionTimestamp / 1000
+                            );
 
                     orderTaskTableView.getItems().add(orderTask);
-
                     orderStage.close();
+
+                    TaskCache.GetTaskCache().scheduleTask(orderTask, actionTimestamp - 10*1000);
+
                 } catch (ParseException e) {
                     e.printStackTrace();
                 }

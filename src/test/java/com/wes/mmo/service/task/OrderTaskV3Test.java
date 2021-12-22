@@ -200,7 +200,6 @@ public class OrderTaskV3Test {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-//                webSocket.send("Hello Word");
             }
 
             @Override
@@ -255,7 +254,7 @@ public class OrderTaskV3Test {
                 1640570400 + 3600,
                 "",
                 "0",
-                 System.currentTimeMillis()/1000 + 300
+                 System.currentTimeMillis()/1000 + 10
         );
         thread.start();
 
