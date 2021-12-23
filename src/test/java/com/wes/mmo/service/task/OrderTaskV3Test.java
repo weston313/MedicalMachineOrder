@@ -224,8 +224,6 @@ public class OrderTaskV3Test {
             }
         });
 
-
-
         while(true){
             System.out.println("=====> Sleep 1 Second");
             Thread.sleep(1000);

@@ -19,6 +19,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 public class OrderWindow {
 
@@ -102,18 +103,24 @@ public class OrderWindow {
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH-mm");
                 try {
                     long actionTimestamp = sdf.parse(actionTimeStr).getTime();
-                    OrderTaskV3 orderTask = new OrderTaskV3(equementDetail,
-                            sdf.parse(startTimeStr).getTime()/1000,
-                            sdf.parse(endTimeStr).getTime()/1000 - 1,
-                            "",
-                            relationProduct,
-                            actionTimestamp / 1000
-                            );
 
-                    orderTaskTableView.getItems().add(orderTask);
+
+//                    orderTaskTableView.getItems().add(orderTask);
                     orderStage.close();
 
-                    TaskCache.GetTaskCache().scheduleTask(orderTask, actionTimestamp - 10*1000);
+                    // order by 3 second
+                    for(int i = -1; i <= 12; i++) {
+                        long actionTime = actionTimestamp + i * 3*1000;
+                        OrderTaskV3 orderTask = new OrderTaskV3(
+                                equementDetail,
+                                sdf.parse(startTimeStr).getTime()/1000,
+                                sdf.parse(endTimeStr).getTime()/1000 - 1,
+                                "",
+                                relationProduct,
+                                (actionTime + 3000) / 1000
+                        );
+                        TaskCache.GetTaskCache().scheduleTask(orderTask, actionTime);
+                    }
 
                 } catch (ParseException e) {
                     e.printStackTrace();
@@ -148,4 +155,5 @@ public class OrderWindow {
     public void show(){
         orderStage.show();
     }
+
 }

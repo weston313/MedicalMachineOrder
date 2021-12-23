@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.html.*;
 import com.gargoylesoftware.htmlunit.util.Cookie;
 import com.wes.mmo.common.config.AppConfiguration;
@@ -26,7 +25,6 @@ import org.apache.xerces.dom.DeferredElementImpl;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -39,7 +37,9 @@ import java.net.URISyntaxException;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -164,6 +164,8 @@ public class OrderTaskV3 extends Thread {
                     executorService.schedule(thread, actionTimestamp - System.currentTimeMillis() - 1, TimeUnit.MILLISECONDS);
                 }
             }
+            // 沉睡15秒，用来等待子进程
+            Thread.sleep(15000);
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -429,6 +431,8 @@ public class OrderTaskV3 extends Thread {
             try {
                 LOG.info("======> Send Form on " + System.currentTimeMillis());
                 socket.emit("yiqikong-reserv", form);
+                Thread.sleep(10000);
+                socket.disconnect();
             } catch (Exception e) {
                 LOG.error(e.getMessage());
             }
