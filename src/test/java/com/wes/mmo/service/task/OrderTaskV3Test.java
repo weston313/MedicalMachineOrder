@@ -246,7 +246,7 @@ public class OrderTaskV3Test {
                 ,"1"
         );
 
-        long actionTime = System.currentTimeMillis()/1000 + 30;
+        long actionTime = System.currentTimeMillis()/1000;
         for(int i = 0; i< 1; i++){
             Thread thread = new OrderTaskV3(
                     equementDetail,

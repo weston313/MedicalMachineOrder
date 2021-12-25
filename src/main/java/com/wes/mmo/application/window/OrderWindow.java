@@ -110,9 +110,23 @@ public class OrderWindow {
 
                     // order by 3 second
                     for(int i = -1; i < 0; i++) {
-                        long actionTime = actionTimestamp + i * 30*1000;
+                        long actionTime = actionTimestamp + i * 60*1000;
                         long socketActionTime = actionTimestamp / 1000;
-                        if(i >= 0) socketActionTime = actionTimestamp + i*30;
+//                        if(i >= 0) socketActionTime = actionTimestamp + i*30;
+                        OrderTaskV3 orderTask = new OrderTaskV3(
+                                equementDetail,
+                                sdf.parse(startTimeStr).getTime()/1000,
+                                sdf.parse(endTimeStr).getTime()/1000 - 1,
+                                "",
+                                relationProduct,
+                                socketActionTime
+                        );
+                        TaskCache.GetTaskCache().scheduleTask(orderTask, actionTime);
+                    }
+
+                    for(int i = 0; i < 12; i++) {
+                        long actionTime = actionTimestamp + i * 5*1000;
+                        long socketActionTime = actionTimestamp / 1000 + i*5;
                         OrderTaskV3 orderTask = new OrderTaskV3(
                                 equementDetail,
                                 sdf.parse(startTimeStr).getTime()/1000,

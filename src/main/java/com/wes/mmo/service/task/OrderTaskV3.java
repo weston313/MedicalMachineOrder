@@ -4,10 +4,12 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.WebClient;
+import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.html.*;
 import com.gargoylesoftware.htmlunit.util.Cookie;
 import com.wes.mmo.common.config.AppConfiguration;
 import com.wes.mmo.common.config.ConfigKey;
+import com.wes.mmo.common.cookie.CookieManagerCache;
 import com.wes.mmo.dao.EquementDetail;
 import com.wes.mmo.utils.TimeUtils;
 import com.wes.mmo.utils.Utils;
@@ -22,6 +24,8 @@ import okhttp3.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.xerces.dom.DeferredElementImpl;
+import org.apache.xerces.impl.xs.traversers.XSAttributeChecker;
+import org.eclipse.jetty.io.ssl.ALPNProcessor;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -136,14 +140,30 @@ public class OrderTaskV3 extends Thread {
         this.action = new SimpleStringProperty("STOP");
         this.index = new SimpleStringProperty(String.valueOf(System.currentTimeMillis()/1000));
         this.executorService = Executors.newScheduledThreadPool(threadNum);
+        initlize();
+    }
+
+    private WebClient webClient;
+    private Cookie cookie;
+    private ClientHandleThread clientHandleThread;
+    private Map<String, String> orderTableInfo;
+
+    private void initlize(){
+        this.webClient = createWebClient();
+        this.cookie = webClient.getCookieManager().getCookie("session_lims2_cf-lite_chinablood");
+        this.clientHandleThread = new ClientHandleThread(webClient);
+        clientHandleThread.start();
+        orderTableInfo = getOrderTableInfo(webClient, equementDetail.getOrderUrl(), startTime, endTime);
+
     }
 
     @Override
     public void run() {
         try {
-            WebClient webClient = createWebClient();
-            Cookie cookie = webClient.getCookieManager().getCookie("session_lims2_cf-lite_chinablood");
-            Map<String, String> orderTableInfo = getOrderTableInfo(webClient, equementDetail.getOrderUrl(), startTime, endTime);
+            // stop cookie refresh
+            clientHandleThread.setRefresh(false);
+
+            // get svg
             String calendarTableId = "calweek_" + Utils.ConvertDecToHex(System.currentTimeMillis() * 1048).toLowerCase();
             String captchResult = getSvgResultV2(calendarTableId, cookie);
             String orderJs = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "仪器使用预约", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, captchResult, cookie);
@@ -152,6 +172,7 @@ public class OrderTaskV3 extends Thread {
             long actionTimestamp = actionTime * 1000;
             if(System.currentTimeMillis() > actionTimestamp) {
                 Thread thread = new EquementOrderThread(jsInfo.get(USER_ID), jsInfo.get(USER_NAME), jsInfo.get(TICKET), jsInfo.get(TICKET_ID), jsInfo.get(FORM));
+                Thread.sleep(1000);
                 thread.start();
             }
             else {
@@ -196,6 +217,35 @@ public class OrderTaskV3 extends Thread {
         }
         finally {
             return webClient;
+        }
+    }
+
+    public class ClientHandleThread extends Thread {
+
+        private WebClient webClient = null;
+        private boolean refresh = true;
+
+        public ClientHandleThread(WebClient webClient){
+            this.webClient = webClient;
+        }
+
+        public void setRefresh(boolean refresh) {
+            this.refresh = refresh;
+        }
+
+        @Override
+        public void run() {
+            while (refresh){
+                try {
+                    // 每5分钟刷一次数值
+                    Thread.sleep(300 * 1000);
+                    this.webClient.getPage(CookieManagerCache.GetCookieManagerCache().getIndexUrl());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -409,8 +459,6 @@ public class OrderTaskV3 extends Thread {
         }
 
         private Socket createWebSocket(String userId, String userName, String ticket, String ticketId) throws URISyntaxException, UnsupportedEncodingException, InterruptedException {
-            LOG.info("======> Order Canlendar By WebSocket.");
-
             IO.Options options = new IO.Options();
             options.forceNew = true;
             options.path = configuration.getKey(ConfigKey.AppKey.WEB_SOCKET_PATH.getKey()).getValue();
