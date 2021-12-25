@@ -119,7 +119,7 @@ public class OrderTaskV3 extends Thread {
     private String relationProject;
     private long actionTime;
     private ScheduledExecutorService executorService;
-    private int threadNum = 10;
+    private int threadNum = 300;
 
     public OrderTaskV3(EquementDetail equementDetail, long startTime, long endTime, String description, String relationProject, long actionTime) {
         this.equementDetail = equementDetail;
@@ -148,31 +148,26 @@ public class OrderTaskV3 extends Thread {
             String captchResult = getSvgResultV2(calendarTableId, cookie);
             String orderJs = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "仪器使用预约", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, captchResult, cookie);
             Map<String, String> jsInfo = parseJavaScriptCode(orderJs);
-            Socket socket = createWebSocket(jsInfo.get(USER_ID), jsInfo.get(USER_NAME), jsInfo.get(TICKET), jsInfo.get(TICKET_ID));
-            LOG.info("======> Order Form Data " + jsInfo.get(FORM));
 
             long actionTimestamp = actionTime * 1000;
             if(System.currentTimeMillis() > actionTimestamp) {
-                LOG.info("Orderring right now.");
-                Thread thread = new EquementOrderThread(socket, jsInfo.get(FORM));
+                Thread thread = new EquementOrderThread(jsInfo.get(USER_ID), jsInfo.get(USER_NAME), jsInfo.get(TICKET), jsInfo.get(TICKET_ID), jsInfo.get(FORM));
                 thread.start();
             }
             else {
                 LOG.info("======> Order on " + actionTimestamp);
+//                int socketThreadNum = 0;
                 for(int i = 1; i <= threadNum; i++){
-                    Thread thread = new EquementOrderThread(socket, jsInfo.get(FORM));
+                    Thread thread = new EquementOrderThread(jsInfo.get(USER_ID), jsInfo.get(USER_NAME), jsInfo.get(TICKET), jsInfo.get(TICKET_ID), jsInfo.get(FORM));
                     executorService.schedule(thread, actionTimestamp - System.currentTimeMillis() - 1, TimeUnit.MILLISECONDS);
                 }
             }
             // 沉睡15秒，用来等待子进程
-            Thread.sleep(15000);
+            Thread.sleep(120000);
         }
         catch (Exception e) {
             e.printStackTrace();
         }
-
-
-
     }
 
     private WebClient createWebClient(){
@@ -381,60 +376,92 @@ public class OrderTaskV3 extends Thread {
         return jsCodeInfo;
     }
 
-    private Socket createWebSocket(String userId, String userName, String ticket, String ticketId) throws URISyntaxException, UnsupportedEncodingException {
-        LOG.info("======> Order Canlendar By WebSocket.");
 
-        IO.Options options = new IO.Options();
-        options.reconnection = false;
-        options.forceNew = true;
-        options.path = configuration.getKey(ConfigKey.AppKey.WEB_SOCKET_PATH.getKey()).getValue();
-        options.timestampRequests = true;
-        options.query =  new StringBuffer()
-                .append("userId=").append(URLEncoder.encode(userId.trim(), "UTF-8"))
-                .append("&").append("userName=").append(URLEncoder.encode(userName.trim(), "UTF-8"))
-                .append("&").append("ticket=").append(URLEncoder.encode(ticket.trim(), "UTF-8"))
-                .append("&").append("ticketId=").append(URLEncoder.encode(ticketId.trim(), "UTF-8"))
-                .toString();
-
-        String url = configuration.getKey(ConfigKey.AppKey.WEB_SOCKET_ADDRESS.getKey()).getValue();
-        Socket socket = IO.socket(new URI(url), options);
-
-        socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                LOG.info("======> Open WebSocket On " + System.currentTimeMillis());
-            }
-        }).on("yiqikong-reserv-reback", new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                LOG.info("======> Order Result " + args[0]);
-//                socket.disconnect();
-            }
-        });
-        socket.connect();
-
-        return socket;
-    }
 
     public class EquementOrderThread extends Thread {
 
+        private String userId;
+        private String userName;
+        private String ticket;
+        private String ticketId;
         private Socket socket;
         private JSONObject form;
 
-        public EquementOrderThread(Socket socket, String form){
-            this.socket = socket;
+        public EquementOrderThread(String userId, String userName, String ticket, String ticketId, String form) {
+            this.userId = userId;
+            this.userName = userName;
+            this.ticket = ticket;
+            this.ticketId = ticketId;
             this.form = JSON.parseObject(form);
+            try {
+                this.socket = createWebSocket(this.userId, this.userName, this.ticket, this.ticketId);
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        private boolean isConnected(){
+            return this.socket.connected();
+        }
+
+        private Socket createWebSocket(String userId, String userName, String ticket, String ticketId) throws URISyntaxException, UnsupportedEncodingException, InterruptedException {
+            LOG.info("======> Order Canlendar By WebSocket.");
+
+            IO.Options options = new IO.Options();
+            options.forceNew = true;
+            options.path = configuration.getKey(ConfigKey.AppKey.WEB_SOCKET_PATH.getKey()).getValue();
+            options.timestampRequests = true;
+            options.query =  new StringBuffer()
+                    .append("userId=").append(URLEncoder.encode(userId.trim(), "UTF-8"))
+                    .append("&").append("userName=").append(URLEncoder.encode(userName.trim(), "UTF-8"))
+                    .append("&").append("ticket=").append(URLEncoder.encode(ticket.trim(), "UTF-8"))
+                    .append("&").append("ticketId=").append(URLEncoder.encode(ticketId.trim(), "UTF-8"))
+                    .toString();
+
+            String url = configuration.getKey(ConfigKey.AppKey.WEB_SOCKET_ADDRESS.getKey()).getValue();
+            Socket socket = IO.socket(new URI(url), options);
+
+            socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+                @Override
+                public void call(Object... args) {
+                    LOG.info("======> Open WebSocket On " + System.currentTimeMillis());
+                }
+            }).on("yiqikong-reserv-reback", new Emitter.Listener() {
+                @Override
+                public void call(Object... args) {
+                    LOG.info("======> Order Result " + args[0]);
+                }
+            }).on(Socket.EVENT_ERROR, new Emitter.Listener() {
+                @Override
+                public void call(Object... objects) {
+                    LOG.info("======> Error is " + objects[0] + " and reconnect.");
+                }
+            }).on(Socket.EVENT_CONNECT_ERROR, new Emitter.Listener() {
+                @Override
+                public void call(Object... objects) {
+                    LOG.info("======> Error is " + objects[0] + " and reconnect.");
+                }
+            })
+            ;
+            socket.connect();
+            return socket;
         }
 
         @Override
         public void run() {
             try {
-                LOG.info("======> Send Form on " + System.currentTimeMillis());
-                socket.emit("yiqikong-reserv", form);
-                Thread.sleep(10000);
+                if(socket.connected()) {
+                    LOG.info("======> Send Form on " + System.currentTimeMillis());
+                    socket.emit("yiqikong-reserv", form);
+                }
+                Thread.sleep(5000);
                 socket.disconnect();
             } catch (Exception e) {
-                LOG.error(e.getMessage());
+                e.printStackTrace();
             }
         }
     }

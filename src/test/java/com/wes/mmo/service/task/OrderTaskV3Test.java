@@ -246,16 +246,18 @@ public class OrderTaskV3Test {
                 ,"1"
         );
 
-        Thread thread = new OrderTaskV3(
-                equementDetail,
-                1640570400,  // 1640545200
-                1640570400 + 3600,
-                "",
-                "0",
-                 System.currentTimeMillis()/1000 + 10
-        );
-        thread.start();
-
+        long actionTime = System.currentTimeMillis()/1000 + 30;
+        for(int i = 0; i< 1; i++){
+            Thread thread = new OrderTaskV3(
+                    equementDetail,
+                    1640923200,  // 1640545200
+                    1640923200 + 3600,
+                    "",
+                    "0",
+                    actionTime
+            );
+            thread.start();
+        }
 
         Thread.sleep(3600000);
     }
