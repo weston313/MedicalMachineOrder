@@ -151,7 +151,6 @@ public class OrderTaskV3 extends Thread {
 
     private WebClient webClient;
     private Cookie cookie;
-    private ClientHandleThread clientHandleThread;
     private Map<String, String> orderTableInfo;
     private Socket socket;
 
@@ -160,8 +159,7 @@ public class OrderTaskV3 extends Thread {
         // initlize web client
         webClient = createWebClient();
         cookie = webClient.getCookieManager().getCookie(COOKIE_NAME);
-        clientHandleThread = new ClientHandleThread(webClient);
-        clientHandleThread.start();
+        TaskCache.GetTaskCache().getScheduledExecutorService().scheduleAtFixedRate(new ClientHandleThread(webClient), 300, 300, TimeUnit.SECONDS);
 
         // create socket info
         orderTableInfo = getOrderTableInfo(webClient, equementDetail.getOrderUrl(), startTime, endTime);
@@ -228,21 +226,14 @@ public class OrderTaskV3 extends Thread {
             this.webClient = webClient;
         }
 
-        public void setRefresh(boolean refresh) {
-            this.refresh = refresh;
-        }
-
         @Override
         public void run() {
             while (refresh){
                 try {
                     // refresh 5 minutes
-                    Thread.sleep(300 * 1000);
                     LOG.info("======> ClientHandleThread Heart Beat 5 Minutes.");
                     this.webClient.getPage(CookieManagerCache.GetCookieManagerCache().getIndexUrl());
                 } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
