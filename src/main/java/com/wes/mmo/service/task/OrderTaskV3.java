@@ -230,7 +230,7 @@ public class OrderTaskV3 extends Thread {
         public void run() {
             while (refresh){
                 try {
-                    // 每5分钟刷一次数值
+                    // refresh 5 minutes
                     Thread.sleep(300 * 1000);
                     LOG.info("======> ClientHandleThread Heart Beat 5 Minutes.");
                     this.webClient.getPage(CookieManagerCache.GetCookieManagerCache().getIndexUrl());

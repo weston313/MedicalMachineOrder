@@ -26,6 +26,10 @@ public class TaskCache {
 
     private ScheduledExecutorService scheduledExecutorService= null;
 
+    public ScheduledExecutorService getScheduledExecutorService() {
+        return scheduledExecutorService;
+    }
+
     private TaskCache() {
         scheduledExecutorService = Executors.newScheduledThreadPool(10);
     }

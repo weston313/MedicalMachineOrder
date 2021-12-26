@@ -20,6 +20,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.Date;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class OrderWindow {
@@ -105,10 +106,6 @@ public class OrderWindow {
                 try {
                     long actionTimestamp = sdf.parse(actionTimeStr).getTime();
 
-
-//                    orderTaskTableView.getItems().add(orderTask);
-                    orderStage.close();
-
                     long socketActionTime = actionTimestamp / 1000;
                     OrderTaskV3 orderTask = new OrderTaskV3(
                             equementDetail,
@@ -120,6 +117,8 @@ public class OrderWindow {
                     );
                     TaskCache.GetTaskCache().scheduleTask(orderTask, actionTimestamp - 50*1000);
 
+                    orderTaskTableView.getItems().add(orderTask);
+                    orderStage.close();
                 } catch (ParseException e) {
                     e.printStackTrace();
                 } catch (IOException e) {

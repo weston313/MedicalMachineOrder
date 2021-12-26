@@ -1,38 +1,23 @@
 package com.wes.mmo.service.task;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.fasterxml.jackson.databind.jsontype.impl.StdSubtypeResolver;
 import com.wes.mmo.common.config.AppConfiguration;
 import com.wes.mmo.common.config.Value;
 import com.wes.mmo.dao.EquementDetail;
 import com.wes.mmo.utils.Utils;
-import io.netty.handler.codec.serialization.ObjectEncoder;
 import io.socket.client.IO;
 import io.socket.client.Manager;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 import io.socket.engineio.client.EngineIOException;
 import io.socket.engineio.client.Transport;
-import io.socket.engineio.client.transports.Polling;
-import io.socket.parseqs.ParseQS;
 import io.socket.yeast.Yeast;
 import okhttp3.*;
-import org.apache.log4j.LogMF;
-import org.apache.xerces.dom.DeferredElementImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-import org.openqa.selenium.json.Json;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-
-import javax.xml.crypto.dsig.SignatureMethod;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -40,7 +25,10 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 public class OrderTaskV3Test {
 
