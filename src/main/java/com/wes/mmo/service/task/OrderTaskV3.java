@@ -228,14 +228,11 @@ public class OrderTaskV3 extends Thread {
 
         @Override
         public void run() {
-            while (refresh){
-                try {
-                    // refresh 5 minutes
-                    LOG.info("======> ClientHandleThread Heart Beat 5 Minutes.");
-                    this.webClient.getPage(CookieManagerCache.GetCookieManagerCache().getIndexUrl());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+            try {
+                LOG.info("======> ClientHandleThread Heart Beat 5 Minutes.");
+                this.webClient.getPage(CookieManagerCache.GetCookieManagerCache().getIndexUrl());
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
