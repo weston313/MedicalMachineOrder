@@ -18,6 +18,7 @@ import io.socket.engineio.client.transports.Polling;
 import io.socket.parseqs.ParseQS;
 import io.socket.yeast.Yeast;
 import okhttp3.*;
+import org.apache.log4j.LogMF;
 import org.apache.xerces.dom.DeferredElementImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -232,7 +233,7 @@ public class OrderTaskV3Test {
     }
 
     @Test
-    public void testOrderTaskV3() throws InterruptedException {
+    public void testOrderTaskV3() throws InterruptedException, IOException, URISyntaxException {
         AppConfiguration configuration = AppConfiguration.getConfiguration();
         configuration.addKey("username", new Value("zhangsen", ""));
         configuration.addKey("password", new Value("Zhangsen2019", ""));
@@ -246,7 +247,8 @@ public class OrderTaskV3Test {
                 ,"1"
         );
 
-        long actionTime = System.currentTimeMillis()/1000;
+        long actionTime = System.currentTimeMillis()/1000 + 30;
+        System.out.println(actionTime);
         for(int i = 0; i< 1; i++){
             Thread thread = new OrderTaskV3(
                     equementDetail,

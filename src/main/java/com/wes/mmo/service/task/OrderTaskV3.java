@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.html.*;
 import com.gargoylesoftware.htmlunit.util.Cookie;
 import com.wes.mmo.common.config.AppConfiguration;
@@ -16,6 +15,7 @@ import com.wes.mmo.utils.Utils;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
+import io.socket.engineio.client.EngineIOException;
 import javafx.beans.property.SimpleStringProperty;
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
@@ -24,11 +24,10 @@ import okhttp3.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.xerces.dom.DeferredElementImpl;
-import org.apache.xerces.impl.xs.traversers.XSAttributeChecker;
-import org.eclipse.jetty.io.ssl.ALPNProcessor;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -72,6 +71,7 @@ public class OrderTaskV3 extends Thread {
     private static final String TICKET = "ticket";
     private static final String TICKET_ID = "ticketId";
     private static final String FORM = "form";
+    private static final String COOKIE_NAME = "session_lims2_cf-lite_chinablood";
 
 
     /**
@@ -123,9 +123,9 @@ public class OrderTaskV3 extends Thread {
     private String relationProject;
     private long actionTime;
     private ScheduledExecutorService executorService;
-    private int threadNum = 300;
+    private int threadNum = 50;
 
-    public OrderTaskV3(EquementDetail equementDetail, long startTime, long endTime, String description, String relationProject, long actionTime) {
+    public OrderTaskV3(EquementDetail equementDetail, long startTime, long endTime, String description, String relationProject, long actionTime) throws IOException, URISyntaxException, InterruptedException {
         this.equementDetail = equementDetail;
         this.startTime = startTime;
         this.endTime = endTime;
@@ -147,44 +147,37 @@ public class OrderTaskV3 extends Thread {
     private Cookie cookie;
     private ClientHandleThread clientHandleThread;
     private Map<String, String> orderTableInfo;
+    private Socket socket;
 
-    private void initlize(){
-        this.webClient = createWebClient();
-        this.cookie = webClient.getCookieManager().getCookie("session_lims2_cf-lite_chinablood");
-        this.clientHandleThread = new ClientHandleThread(webClient);
+    private void initlize() throws IOException, URISyntaxException, InterruptedException {
+
+        // initlize web client
+        webClient = createWebClient();
+        cookie = webClient.getCookieManager().getCookie(COOKIE_NAME);
+        clientHandleThread = new ClientHandleThread(webClient);
         clientHandleThread.start();
-        orderTableInfo = getOrderTableInfo(webClient, equementDetail.getOrderUrl(), startTime, endTime);
 
+        // create socket info
+        orderTableInfo = getOrderTableInfo(webClient, equementDetail.getOrderUrl(), startTime, endTime);
+        String calendarTableId = "calweek_" + Utils.ConvertDecToHex((System.currentTimeMillis()) * 1048).toLowerCase();
+        String captchResult = getSvgResultV2(calendarTableId, cookie);
+        String orderJs = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "仪器使用预约", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, captchResult, cookie);
+        Map<String, String> jsInfo = parseJavaScriptCode(orderJs, captchResult);
+        socket = createWebSocket(jsInfo.get(USER_ID), jsInfo.get(USER_NAME), jsInfo.get(TICKET), jsInfo.get(TICKET_ID));
     }
 
     @Override
     public void run() {
         try {
-            // stop cookie refresh
-            clientHandleThread.setRefresh(false);
-
-            // get svg
-            String calendarTableId = "calweek_" + Utils.ConvertDecToHex(System.currentTimeMillis() * 1048).toLowerCase();
+            LOG.info("======> Start Openning Web Socket on " + System.currentTimeMillis());
+            String calendarTableId = "calweek_" + Utils.ConvertDecToHex((System.currentTimeMillis()) * 1049).toLowerCase();
             String captchResult = getSvgResultV2(calendarTableId, cookie);
             String orderJs = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "仪器使用预约", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, captchResult, cookie);
-            Map<String, String> jsInfo = parseJavaScriptCode(orderJs);
-
-            long actionTimestamp = actionTime * 1000;
-            if(System.currentTimeMillis() > actionTimestamp) {
-                Thread thread = new EquementOrderThread(jsInfo.get(USER_ID), jsInfo.get(USER_NAME), jsInfo.get(TICKET), jsInfo.get(TICKET_ID), jsInfo.get(FORM));
-                Thread.sleep(1000);
-                thread.start();
+            Map<String, String> jsInfo = parseJavaScriptCode(orderJs, captchResult);
+            for(int i = 0; i < threadNum; i++){
+                Thread thread = new EquementOrderThread(socket, jsInfo.get(FORM));
+                executorService.schedule(thread, actionTime * 1000 - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
             }
-            else {
-                LOG.info("======> Order on " + actionTimestamp);
-//                int socketThreadNum = 0;
-                for(int i = 1; i <= threadNum; i++){
-                    Thread thread = new EquementOrderThread(jsInfo.get(USER_ID), jsInfo.get(USER_NAME), jsInfo.get(TICKET), jsInfo.get(TICKET_ID), jsInfo.get(FORM));
-                    executorService.schedule(thread, actionTimestamp - System.currentTimeMillis() - 1, TimeUnit.MILLISECONDS);
-                }
-            }
-            // 沉睡15秒，用来等待子进程
-            Thread.sleep(120000);
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -239,6 +232,7 @@ public class OrderTaskV3 extends Thread {
                 try {
                     // 每5分钟刷一次数值
                     Thread.sleep(300 * 1000);
+                    LOG.info("======> ClientHandleThread Heart Beat 5 Minutes.");
                     this.webClient.getPage(CookieManagerCache.GetCookieManagerCache().getIndexUrl());
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -305,8 +299,7 @@ public class OrderTaskV3 extends Thread {
         }
     }
 
-    public String getSvgResultV2(String caledearTableId, Cookie cookie){
-        LOG.info("======> Compute Svg Result By " + caledearTableId);
+    public String getSvgResultV2(String caledearTableId, Cookie cookie) {
         String captchaResult = "0";
         try {
             String captchaUrl = AppConfiguration.getConfiguration().getKey(ConfigKey.AppKey.SVG_URL.getKey()).getValue();
@@ -365,8 +358,6 @@ public class OrderTaskV3 extends Thread {
 
     private String orderCaledarV2(String url, String name, long startTs, long endTs, String calendarId, String caledarTableId, String desc, String project, String captcha, Cookie cookie) throws IOException {
 
-        LOG.info("======> Start Order Calendar.");
-
         FormBody formBody = new FormBody.Builder()
                 .add("_ajax", "1")
                 .add("_object", "component_form")
@@ -398,7 +389,7 @@ public class OrderTaskV3 extends Thread {
         return  resultObject.getJSONObject("dialog").getString("data").trim();
     }
 
-    private Map<String, String> parseJavaScriptCode(String jsCode){
+    private Map<String, String> parseJavaScriptCode(String jsCode, String captcha){
 
         Map<String, String> jsCodeInfo = new HashMap<>();
 
@@ -419,93 +410,73 @@ public class OrderTaskV3 extends Thread {
             }
             else if(jsLine.trim().startsWith("socket.emit('yiqikong-reserv',")){
                 String tmp = jsLine.trim().replaceAll("socket.emit\\('yiqikong-reserv',", "");
-                jsCodeInfo.put(FORM, tmp.trim().substring(0, tmp.length() - 2));
+                String form = tmp.trim().substring(0, tmp.length() - 2);
+                jsCodeInfo.put(FORM, form);
             }
         }
 
         return jsCodeInfo;
     }
 
+    private Socket createWebSocket(String userId, String userName, String ticket, String ticketId) throws URISyntaxException, UnsupportedEncodingException, InterruptedException {
+        IO.Options options = new IO.Options();
+        options.forceNew = true;
+        options.reconnection = false;
+        options.path = configuration.getKey(ConfigKey.AppKey.WEB_SOCKET_PATH.getKey()).getValue();
+        options.timestampRequests = true;
+        options.timeout= -1;
+        options.query =  new StringBuffer()
+                .append("userId=").append(URLEncoder.encode(userId.trim(), "UTF-8"))
+                .append("&").append("userName=").append(URLEncoder.encode(userName.trim(), "UTF-8"))
+                .append("&").append("ticket=").append(URLEncoder.encode(ticket.trim(), "UTF-8"))
+                .append("&").append("ticketId=").append(URLEncoder.encode(ticketId.trim(), "UTF-8"))
+                .toString();
 
+        String url = configuration.getKey(ConfigKey.AppKey.WEB_SOCKET_ADDRESS.getKey()).getValue();
+        Socket socket = IO.socket(new URI(url), options);
+
+        socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                LOG.info("======> Open WebSocket On " + System.currentTimeMillis());
+            }
+        }).on("yiqikong-reserv-reback", new Emitter.Listener() {
+            @Override
+            public void call(Object... args) {
+                LOG.info("======> Order Result " + args[0]);
+            }
+        }).on(Socket.EVENT_ERROR, new Emitter.Listener() {
+            @Override
+            public void call(Object... objects) {
+                LOG.info("======> Error is " + objects[0] + " and reconnect.");
+                EngineIOException exception = (EngineIOException) objects[0];
+                LOG.info("=======> Error Exception " + exception.getCause());
+            }
+        }).on(Socket.EVENT_CONNECT_ERROR, new Emitter.Listener() {
+            @Override
+            public void call(Object... objects) {
+                LOG.info("======> Error is " + objects[0] + " and reconnect.");
+            }
+        })
+        ;
+        socket.connect();
+        return socket;
+    }
 
     public class EquementOrderThread extends Thread {
-
-        private String userId;
-        private String userName;
-        private String ticket;
-        private String ticketId;
-        private Socket socket;
+        private Socket webSocket;
         private JSONObject form;
 
-        public EquementOrderThread(String userId, String userName, String ticket, String ticketId, String form) {
-            this.userId = userId;
-            this.userName = userName;
-            this.ticket = ticket;
-            this.ticketId = ticketId;
+        public EquementOrderThread(Socket socket, String form) {
+            this.webSocket = socket;
             this.form = JSON.parseObject(form);
-            try {
-                this.socket = createWebSocket(this.userId, this.userName, this.ticket, this.ticketId);
-            } catch (URISyntaxException e) {
-                e.printStackTrace();
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-
-        private boolean isConnected(){
-            return this.socket.connected();
-        }
-
-        private Socket createWebSocket(String userId, String userName, String ticket, String ticketId) throws URISyntaxException, UnsupportedEncodingException, InterruptedException {
-            IO.Options options = new IO.Options();
-            options.forceNew = true;
-            options.path = configuration.getKey(ConfigKey.AppKey.WEB_SOCKET_PATH.getKey()).getValue();
-            options.timestampRequests = true;
-            options.query =  new StringBuffer()
-                    .append("userId=").append(URLEncoder.encode(userId.trim(), "UTF-8"))
-                    .append("&").append("userName=").append(URLEncoder.encode(userName.trim(), "UTF-8"))
-                    .append("&").append("ticket=").append(URLEncoder.encode(ticket.trim(), "UTF-8"))
-                    .append("&").append("ticketId=").append(URLEncoder.encode(ticketId.trim(), "UTF-8"))
-                    .toString();
-
-            String url = configuration.getKey(ConfigKey.AppKey.WEB_SOCKET_ADDRESS.getKey()).getValue();
-            Socket socket = IO.socket(new URI(url), options);
-
-            socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
-                @Override
-                public void call(Object... args) {
-                    LOG.info("======> Open WebSocket On " + System.currentTimeMillis());
-                }
-            }).on("yiqikong-reserv-reback", new Emitter.Listener() {
-                @Override
-                public void call(Object... args) {
-                    LOG.info("======> Order Result " + args[0]);
-                }
-            }).on(Socket.EVENT_ERROR, new Emitter.Listener() {
-                @Override
-                public void call(Object... objects) {
-                    LOG.info("======> Error is " + objects[0] + " and reconnect.");
-                }
-            }).on(Socket.EVENT_CONNECT_ERROR, new Emitter.Listener() {
-                @Override
-                public void call(Object... objects) {
-                    LOG.info("======> Error is " + objects[0] + " and reconnect.");
-                }
-            })
-            ;
-            socket.connect();
-            return socket;
         }
 
         @Override
         public void run() {
             try {
-                if(socket.connected()) {
-                    LOG.info("======> Send Form on " + System.currentTimeMillis());
-                    socket.emit("yiqikong-reserv", form);
-                }
+                this.webSocket.emit("yiqikong-reserv", form);
+                LOG.info("======> Send Form Data on "  + System.currentTimeMillis());
                 Thread.sleep(5000);
                 socket.disconnect();
             } catch (Exception e) {

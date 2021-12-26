@@ -14,6 +14,7 @@ import javafx.stage.Stage;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -108,37 +109,24 @@ public class OrderWindow {
 //                    orderTaskTableView.getItems().add(orderTask);
                     orderStage.close();
 
-                    // order by 3 second
-                    for(int i = -1; i < 0; i++) {
-                        long actionTime = actionTimestamp + i * 60*1000;
-                        long socketActionTime = actionTimestamp / 1000;
-//                        if(i >= 0) socketActionTime = actionTimestamp + i*30;
-                        OrderTaskV3 orderTask = new OrderTaskV3(
-                                equementDetail,
-                                sdf.parse(startTimeStr).getTime()/1000,
-                                sdf.parse(endTimeStr).getTime()/1000 - 1,
-                                "",
-                                relationProduct,
-                                socketActionTime
-                        );
-                        TaskCache.GetTaskCache().scheduleTask(orderTask, actionTime);
-                    }
-
-                    for(int i = 0; i < 12; i++) {
-                        long actionTime = actionTimestamp + i * 5*1000;
-                        long socketActionTime = actionTimestamp / 1000 + i*5;
-                        OrderTaskV3 orderTask = new OrderTaskV3(
-                                equementDetail,
-                                sdf.parse(startTimeStr).getTime()/1000,
-                                sdf.parse(endTimeStr).getTime()/1000 - 1,
-                                "",
-                                relationProduct,
-                                socketActionTime
-                        );
-                        TaskCache.GetTaskCache().scheduleTask(orderTask, actionTime);
-                    }
+                    long socketActionTime = actionTimestamp / 1000;
+                    OrderTaskV3 orderTask = new OrderTaskV3(
+                            equementDetail,
+                            sdf.parse(startTimeStr).getTime()/1000,
+                            sdf.parse(endTimeStr).getTime()/1000 - 1,
+                            "",
+                            relationProduct,
+                            socketActionTime
+                    );
+                    TaskCache.GetTaskCache().scheduleTask(orderTask, actionTimestamp - 50*1000);
 
                 } catch (ParseException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
