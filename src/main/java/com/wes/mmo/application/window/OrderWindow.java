@@ -20,6 +20,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.Date;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -45,10 +46,12 @@ public class OrderWindow {
     private ChoiceBox actionMinuteChoicBox;
 
     private TextField relationProductTextField;
+    private ScheduledExecutorService executorService;
 
     public OrderWindow(TableView orderTaskTableView, EquementDetail equementDetail) {
         this.orderTaskTableView = orderTaskTableView;
         this.equementDetail = equementDetail;
+        this.executorService = Executors.newScheduledThreadPool(10);
     }
 
     public void initlize() throws IOException {
@@ -106,27 +109,37 @@ public class OrderWindow {
                 try {
                     long actionTimestamp = sdf.parse(actionTimeStr).getTime();
 
-                    long socketActionTime = actionTimestamp / 1000;
                     OrderTaskV3 orderTask = new OrderTaskV3(
                             equementDetail,
                             sdf.parse(startTimeStr).getTime()/1000,
                             sdf.parse(endTimeStr).getTime()/1000 - 1,
                             "",
                             relationProduct,
-                            socketActionTime
+                            actionTimestamp / 1000
                     );
-                    TaskCache.GetTaskCache().scheduleTask(orderTask, actionTimestamp - 50*1000);
 
                     orderTaskTableView.getItems().add(orderTask);
                     orderStage.close();
+
+                    long threadActionTs = actionTimestamp - 50*1000;
+                    executorService.schedule(orderTask, threadActionTs - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+                    LOG.info("======> Start Order Task on " + threadActionTs);
+                    Thread.sleep(5000);
                 } catch (ParseException e) {
                     e.printStackTrace();
+                    LOG.info(e.getMessage());
                 } catch (IOException e) {
                     e.printStackTrace();
+                    LOG.info(e.getMessage());
                 } catch (URISyntaxException e) {
                     e.printStackTrace();
+                    LOG.info(e.getMessage());
                 } catch (InterruptedException e) {
                     e.printStackTrace();
+                    LOG.info(e.getMessage());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    LOG.info(e.getMessage());
                 }
             }
         });
