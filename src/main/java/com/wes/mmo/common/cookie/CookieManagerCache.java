@@ -6,6 +6,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlPasswordInput;
 import com.gargoylesoftware.htmlunit.html.HtmlTextInput;
 import com.wes.mmo.common.config.AppConfiguration;
 import com.wes.mmo.common.config.ConfigKey;
+import com.wes.mmo.service.task.TaskCache;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -70,7 +71,7 @@ public class CookieManagerCache {
 			e.printStackTrace();
 		}
 
-		executorService.scheduleAtFixedRate(new Runnable() {
+		TaskCache.GetTaskCache().getScheduledExecutorService().scheduleAtFixedRate(new Runnable() {
 				@Override
 				public void run() {
 					LOG.info("Heat Beate 5 Minute");

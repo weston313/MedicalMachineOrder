@@ -122,10 +122,9 @@ public class OrderTaskV3 extends Thread {
     private String description;
     private String relationProject;
     private long actionTime;
-    private ScheduledExecutorService executorService;
-    private int threadNum = 50;
+    private int threadNum = 20;
 
-    public OrderTaskV3(EquementDetail equementDetail, long startTime, long endTime, String description, String relationProject, long actionTime) throws IOException, URISyntaxException, InterruptedException {
+    public OrderTaskV3(EquementDetail equementDetail, long startTime, long endTime, String description, String relationProject, long actionTime) {
         this.equementDetail = equementDetail;
         this.startTime = startTime;
         this.endTime = endTime;
@@ -139,8 +138,15 @@ public class OrderTaskV3 extends Thread {
         this.status = new SimpleStringProperty("RUNNING");
         this.action = new SimpleStringProperty("STOP");
         this.index = new SimpleStringProperty(String.valueOf(System.currentTimeMillis()/1000));
-        this.executorService = Executors.newScheduledThreadPool(threadNum);
-        initlize();
+        try {
+            initlize();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private WebClient webClient;
@@ -176,7 +182,7 @@ public class OrderTaskV3 extends Thread {
             Map<String, String> jsInfo = parseJavaScriptCode(orderJs, captchResult);
             for(int i = 0; i < threadNum; i++){
                 Thread thread = new EquementOrderThread(socket, jsInfo.get(FORM));
-                executorService.schedule(thread, actionTime * 1000 - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+                TaskCache.GetTaskCache().scheduleTask(thread, actionTime * 1000);
             }
         }
         catch (Exception e) {

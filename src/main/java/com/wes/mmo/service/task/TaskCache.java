@@ -31,7 +31,7 @@ public class TaskCache {
     }
 
     private TaskCache() {
-        scheduledExecutorService = Executors.newScheduledThreadPool(10);
+        scheduledExecutorService = Executors.newScheduledThreadPool(50);
     }
 
     public void scheduleTask(Thread thread, long actionTimeStampt) {

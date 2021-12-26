@@ -122,24 +122,11 @@ public class OrderWindow {
                     orderStage.close();
 
                     long threadActionTs = actionTimestamp - 50*1000;
-                    executorService.schedule(orderTask, threadActionTs - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+                    TaskCache.GetTaskCache().getScheduledExecutorService().schedule(orderTask, threadActionTs - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
                     LOG.info("======> Start Order Task on " + threadActionTs);
-                    Thread.sleep(5000);
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                    LOG.info(e.getMessage());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    LOG.info(e.getMessage());
-                } catch (URISyntaxException e) {
-                    e.printStackTrace();
-                    LOG.info(e.getMessage());
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    LOG.info(e.getMessage());
                 } catch (Exception e) {
                     e.printStackTrace();
-                    LOG.info(e.getMessage());
+                    LOG.info("======> " + e.getCause());
                 }
             }
         });
