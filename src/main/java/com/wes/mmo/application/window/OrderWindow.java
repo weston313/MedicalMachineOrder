@@ -3,6 +3,8 @@ package com.wes.mmo.application.window;
 import com.wes.mmo.dao.EquementDetail;
 import com.wes.mmo.service.task.OrderTaskV3;
 import com.wes.mmo.service.task.TaskCache;
+import com.wes.mmo.utils.TimeUtils;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
@@ -28,7 +30,7 @@ public class OrderWindow {
 
     public static final Log LOG = LogFactory.getLog(OrderWindow.class);
 
-    private TableView<Thread> orderTaskTableView;
+    private TableView<OrderTask> orderTaskTableView;
 
     private EquementDetail equementDetail;
 
@@ -91,39 +93,36 @@ public class OrderWindow {
                 String startTimeStr = new StringBuffer().append(startDate.toString())
                         .append("-").append(startHourCheckBox.getValue().toString())
                         .append("-").append(startMinuteCheckBox.getValue().toString()).toString();
+                long startTimestamp  = TimeUtils.ParseDateString(startTimeStr, "yyyy-MM-dd-HH-mm");;
 
                 LocalDate endDate = endDatePicker.getValue();
                 String endTimeStr = new StringBuffer().append(endDate.toString())
                         .append("-").append(endHourCheckBox.getValue().toString())
                         .append("-").append(endMinuteCheckBox.getValue().toString()).toString();
+                long endTimestamp  = TimeUtils.ParseDateString(endTimeStr, "yyyy-MM-dd-HH-mm");;
 
                 LocalDate actionDate = actionDatePicker.getValue();
                 String actionTimeStr = new StringBuffer().append(actionDate.toString())
                         .append("-").append(actionHourChoiceBox.getValue().toString())
                         .append("-").append(actionMinuteChoicBox.getValue().toString()).toString();
-
+                long actionTimestamp  = TimeUtils.ParseDateString(actionTimeStr, "yyyy-MM-dd-HH-mm");
 
                 String relationProduct = relationProductTextField.getText();
 
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH-mm");
                 try {
-                    long actionTimestamp = sdf.parse(actionTimeStr).getTime();
+                    OrderTask taskItem = new OrderTask(equementDetail, startTimestamp, endTimestamp,actionTimestamp);
+                    orderTaskTableView.getItems().add(taskItem);
+                    orderStage.close();
 
-                    OrderTaskV3 orderTask = new OrderTaskV3(
+                    Thread thread = new OrderTaskV3(
                             equementDetail,
-                            sdf.parse(startTimeStr).getTime()/1000,
-                            sdf.parse(endTimeStr).getTime()/1000 - 1,
+                            startTimestamp/1000,
+                            endTimestamp/1000,
                             "",
                             relationProduct,
                             actionTimestamp / 1000
                     );
-
-                    orderTaskTableView.getItems().add(orderTask);
-                    orderStage.close();
-
-                    long threadActionTs = actionTimestamp - 50*1000;
-                    TaskCache.GetTaskCache().getScheduledExecutorService().schedule(orderTask, threadActionTs - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
-                    LOG.info("======> Start Order Task on " + threadActionTs);
+                    TaskCache.GetTaskCache().scheduleTask(thread, actionTimestamp - 50*1000);
                 } catch (Exception e) {
                     e.printStackTrace();
                     LOG.info("======> " + e.getCause());
@@ -155,6 +154,63 @@ public class OrderWindow {
 
     public void show(){
         orderStage.show();
+    }
+
+
+    public class OrderTask {
+        /**
+         * Job List Information
+         */
+        private EquementDetail equementDetail;
+        private SimpleStringProperty index ;
+        private SimpleStringProperty equement = null;
+        private SimpleStringProperty start = null;
+        private SimpleStringProperty end = null;
+        private SimpleStringProperty status = null;
+        private SimpleStringProperty action = null;
+        private SimpleStringProperty time = null;
+
+        public String getEquement(){
+            return equement.get();
+        }
+
+        public String getStart(){
+            return start.get();
+        }
+
+        public String getEnd(){
+            return end.get();
+        }
+
+        public String getStatus(){
+            return status.get();
+        }
+
+        public String getAction() {
+            return action.get();
+        }
+
+        public void setStatus(String status){
+            this.status.setValue(status);
+        }
+
+        public String getIndex(){
+            return this.index.get();
+        }
+
+        public String getTime() {
+            return time.get();
+        }
+
+        public OrderTask(EquementDetail equementDetail, long startTime, long endTime, long actionTime) {
+            this.equementDetail = equementDetail;
+            this.equement = new SimpleStringProperty(equementDetail.getName());
+            this.start = new SimpleStringProperty(TimeUtils.FormatDate(new Date(startTime), "yyyy-MM-dd HH:mm:ss"));
+            this.end = new SimpleStringProperty(TimeUtils.FormatDate(new Date(endTime), "yyyy-MM-dd HH:mm:ss"));
+            this.status = new SimpleStringProperty("RUNNING");
+            this.time = new SimpleStringProperty(TimeUtils.FormatDate(new Date(actionTime), "yyyy-MM-dd HH:mm:ss"));
+            this.index = new SimpleStringProperty(String.valueOf(System.currentTimeMillis()/1000));
+        }
     }
 
 }

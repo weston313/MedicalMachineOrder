@@ -156,40 +156,12 @@ public class MainWindow  {
             column.setStyle("-fx-alignment: CENTER-LEFT;");
         }
 
-        columns.get(0).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("index"));
-        columns.get(1).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("equement"));
-        columns.get(2).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("start"));
-        columns.get(3).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("end"));
-        columns.get(4).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("status"));
-        // 增加按钮 ,
-        columns.get(5).setCellValueFactory(new PropertyValueFactory<OrderTaskV3, String>("action"));
-        columns.get(5).setCellFactory(new Callback<TableColumn<OrderTaskV3, String>, TableCell<OrderTaskV3, String>>() {
-            @Override
-            public TableCell call(final TableColumn<OrderTaskV3, String> param) {
-                final TableCell<OrderTaskV3, String> cell = new TableCell<OrderTaskV3, String>() {
-
-                    final Button btn = new Button("STOP");
-
-                    @Override
-                    public void updateItem(String item, boolean empty) {
-                        super.updateItem(item, empty);
-                        btn.setOnAction(event -> {
-                            OrderTaskV3 orderTask = getTableView().getItems().get(getIndex());
-                            orderTask.stop();
-                            LOG.info(orderTask.getStatus());
-                            orderTask.setStatus("STOP");
-                            taskTable.refresh();
-                        });
-
-                        if(!empty) {
-                            setGraphic(btn);
-                            setText(null);
-                        }
-                    }
-                };
-                return cell;
-            }
-        });
+        columns.get(0).setCellValueFactory(new PropertyValueFactory<OrderWindow.OrderTask, String>("index"));
+        columns.get(1).setCellValueFactory(new PropertyValueFactory<OrderWindow.OrderTask, String>("equement"));
+        columns.get(2).setCellValueFactory(new PropertyValueFactory<OrderWindow.OrderTask, String>("start"));
+        columns.get(3).setCellValueFactory(new PropertyValueFactory<OrderWindow.OrderTask, String>("end"));
+        columns.get(4).setCellValueFactory(new PropertyValueFactory<OrderWindow.OrderTask, String>("time"));
+        columns.get(5).setCellValueFactory(new PropertyValueFactory<OrderWindow.OrderTask, String>("status"));
 
         orderTable.getItems().clear();
     }

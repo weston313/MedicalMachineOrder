@@ -16,7 +16,6 @@ import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 import io.socket.engineio.client.EngineIOException;
-import javafx.beans.property.SimpleStringProperty;
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -27,7 +26,6 @@ import org.apache.xerces.dom.DeferredElementImpl;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -38,13 +36,10 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
-import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class OrderTaskV3 extends Thread {
@@ -75,44 +70,6 @@ public class OrderTaskV3 extends Thread {
 
 
     /**
-     * Job List Information
-     */
-    private SimpleStringProperty index ;
-    private SimpleStringProperty equement = null;
-    private SimpleStringProperty start = null;
-    private SimpleStringProperty end = null;
-    private SimpleStringProperty status = null;
-    private SimpleStringProperty action = null;
-
-    public String getEquement(){
-        return equement.get();
-    }
-
-    public String getStart(){
-        return start.get();
-    }
-
-    public String getEnd(){
-        return end.get();
-    }
-
-    public String getStatus(){
-        return status.get();
-    }
-
-    public String getAction() {
-        return action.get();
-    }
-
-    public void setStatus(String status){
-        this.status.setValue(status);
-    }
-
-    public String getIndex(){
-        return this.index.get();
-    }
-
-    /**
      * Order Thread Information
      */
     private AppConfiguration configuration = AppConfiguration.getConfiguration();
@@ -131,13 +88,6 @@ public class OrderTaskV3 extends Thread {
         this.description = description;
         this.relationProject = relationProject;
         this.actionTime = actionTime;
-
-        this.equement = new SimpleStringProperty(equementDetail.getName());
-        this.start = new SimpleStringProperty(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(startTime*1000)));
-        this.end = new SimpleStringProperty(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(endTime*1000)));
-        this.status = new SimpleStringProperty("RUNNING");
-        this.action = new SimpleStringProperty("STOP");
-        this.index = new SimpleStringProperty(String.valueOf(System.currentTimeMillis()/1000));
         try {
             initlize();
         } catch (IOException e) {
@@ -180,7 +130,7 @@ public class OrderTaskV3 extends Thread {
             Map<String, String> jsInfo = parseJavaScriptCode(orderJs, captchResult);
             for(int i = 0; i < threadNum; i++){
                 Thread thread = new EquementOrderThread(socket, jsInfo.get(FORM));
-                TaskCache.GetTaskCache().scheduleTask(thread, actionTime * 1000);
+                TaskCache.GetTaskCache().scheduleTask(thread, actionTime * 1000 - 5);
             }
         }
         catch (Exception e) {
@@ -220,7 +170,6 @@ public class OrderTaskV3 extends Thread {
     public class ClientHandleThread extends Thread {
 
         private WebClient webClient = null;
-        private boolean refresh = true;
 
         public ClientHandleThread(WebClient webClient){
             this.webClient = webClient;
@@ -418,7 +367,7 @@ public class OrderTaskV3 extends Thread {
         options.reconnection = false;
         options.path = configuration.getKey(ConfigKey.AppKey.WEB_SOCKET_PATH.getKey()).getValue();
         options.timestampRequests = true;
-        options.timeout= -1;
+        options.timeout = -1;
         options.query =  new StringBuffer()
                 .append("userId=").append(URLEncoder.encode(userId.trim(), "UTF-8"))
                 .append("&").append("userName=").append(URLEncoder.encode(userName.trim(), "UTF-8"))

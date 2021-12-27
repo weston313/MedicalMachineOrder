@@ -3,6 +3,8 @@ package com.wes.mmo.service.task;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -24,6 +26,7 @@ public class TaskCache {
         return INSTANCE;
     }
 
+    private Map<Long, Thread> cacheThreads = new HashMap<>();
     private ScheduledExecutorService scheduledExecutorService= null;
 
     public ScheduledExecutorService getScheduledExecutorService() {
@@ -34,10 +37,24 @@ public class TaskCache {
         scheduledExecutorService = Executors.newScheduledThreadPool(50);
     }
 
-    public void scheduleTask(Thread thread, long actionTimeStampt) {
-        if(actionTimeStampt <= System.currentTimeMillis())
+    public void scheduleTask(Thread thread, long actionTimestampt) {
+        scheduleTask(thread.getId(), thread, actionTimestampt);
+    }
+
+    public void scheduleTask(long threadId, Thread thread, long actionTimeStampt) {
+        if(actionTimeStampt <= System.currentTimeMillis()){
             thread.start();
-        else
+        }
+        else{
             scheduledExecutorService.schedule(thread, actionTimeStampt - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+        }
+        cacheThreads.put(threadId, thread);
+    }
+
+    public void removeTask(long indexId){
+        Thread thread = cacheThreads.get(indexId);
+        if(thread != null && thread.isAlive()){
+            thread.interrupt();
+        }
     }
 }
