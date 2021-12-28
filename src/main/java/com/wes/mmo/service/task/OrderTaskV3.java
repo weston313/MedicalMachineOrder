@@ -420,7 +420,7 @@ public class OrderTaskV3 extends Thread {
             try {
                 this.webSocket.emit("yiqikong-reserv", form);
                 LOG.info("======> Send Form Data on "  + System.currentTimeMillis());
-                Thread.sleep(5000);
+                Thread.sleep(60000);
                 socket.disconnect();
             } catch (Exception e) {
                 e.printStackTrace();
