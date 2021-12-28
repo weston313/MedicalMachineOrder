@@ -79,7 +79,7 @@ public class OrderTaskV3 extends Thread {
     private String description;
     private String relationProject;
     private long actionTime;
-    private int threadNum = 100;
+    private int threadNum = 20;
 
     public OrderTaskV3(EquementDetail equementDetail, long startTime, long endTime, String description, String relationProject, long actionTime) {
         this.equementDetail = equementDetail;
