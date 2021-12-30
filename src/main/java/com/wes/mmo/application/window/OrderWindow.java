@@ -22,6 +22,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.Date;
+import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -122,7 +123,7 @@ public class OrderWindow {
                             relationProduct,
                             actionTimestamp / 1000
                     );
-                    TaskCache.GetTaskCache().scheduleTask(thread, actionTimestamp - 50*1000);
+                    TaskCache.GetTaskCache().scheduleTask(thread, actionTimestamp - 30*1000 + Double.valueOf(Math.random()*1000).longValue());
                 } catch (Exception e) {
                     e.printStackTrace();
                     LOG.info("======> " + e.getCause());

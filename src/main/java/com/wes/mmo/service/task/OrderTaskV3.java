@@ -79,7 +79,7 @@ public class OrderTaskV3 extends Thread {
     private String description;
     private String relationProject;
     private long actionTime;
-    private int threadNum = 20;
+    private int threadNum = 10;
 
     public OrderTaskV3(EquementDetail equementDetail, long startTime, long endTime, String description, String relationProject, long actionTime) {
         this.equementDetail = equementDetail;
@@ -130,7 +130,7 @@ public class OrderTaskV3 extends Thread {
             Map<String, String> jsInfo = parseJavaScriptCode(orderJs, captchResult);
             for(int i = 0; i < threadNum; i++){
                 Thread thread = new EquementOrderThread(socket, jsInfo.get(FORM));
-                TaskCache.GetTaskCache().scheduleTask(thread, actionTime * 1000 - 5);
+                TaskCache.GetTaskCache().scheduleTask(thread, actionTime * 1000 - 15);
             }
         }
         catch (Exception e) {
