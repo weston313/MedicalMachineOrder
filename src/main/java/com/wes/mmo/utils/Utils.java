@@ -7,12 +7,7 @@ public class Utils {
 	private static final String MMO_CONF_DIR ="MMO_CONF_DIR";
 	
 	public static String GetConfPath() {
-		if(System.getProperty("os.name").toUpperCase().startsWith("WINDOWS")){
-			return GetEnverimentProperty(MMO_CONF_DIR);
-		}
-		else {
-			return "/Users/wozipa/test/MMO/conf";
-		}
+		return GetEnverimentProperty(MMO_CONF_DIR);
 	}
 	
 	public static String GetEnverimentProperty(String name) {
