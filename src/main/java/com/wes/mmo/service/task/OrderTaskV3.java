@@ -115,7 +115,7 @@ public class OrderTaskV3 extends Thread {
         orderTableInfo = getOrderTableInfo(webClient, equementDetail.getOrderUrl(), startTime, endTime);
         String calendarTableId = "calweek_" + Utils.ConvertDecToHex((System.currentTimeMillis()) * 1048).toLowerCase();
         String captchResult = getSvgResultV2(calendarTableId, cookie);
-        String orderJs = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "仪器使用预约", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, captchResult, cookie);
+        String orderJs = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "1", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, captchResult, cookie);
         Map<String, String> jsInfo = parseJavaScriptCode(orderJs, captchResult);
         socket = createWebSocket(jsInfo.get(USER_ID), jsInfo.get(USER_NAME), jsInfo.get(TICKET), jsInfo.get(TICKET_ID));
     }
