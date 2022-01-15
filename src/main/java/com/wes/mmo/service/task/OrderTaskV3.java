@@ -367,7 +367,7 @@ public class OrderTaskV3 extends Thread {
         options.reconnection = false;
         options.path = configuration.getKey(ConfigKey.AppKey.WEB_SOCKET_PATH.getKey()).getValue();
         options.timestampRequests = true;
-        options.timeout = -1;
+        options.timeout = 3600000;
         options.query =  new StringBuffer()
                 .append("userId=").append(URLEncoder.encode(userId.trim(), "UTF-8"))
                 .append("&").append("userName=").append(URLEncoder.encode(userName.trim(), "UTF-8"))
@@ -420,8 +420,15 @@ public class OrderTaskV3 extends Thread {
             try {
                 this.webSocket.emit("yiqikong-reserv", form);
                 LOG.info("======> Send Form Data on "  + System.currentTimeMillis());
-                Thread.sleep(60000);
-                socket.disconnect();
+                Thread.sleep(10000);
+                if(this.webSocket.connected()) {
+                    synchronized (this.webSocket) {
+                        if(this.webSocket.connected()) {
+                            LOG.info("======> Close The WebSocket Connection.");
+                            this.webSocket.disconnect();
+                        }
+                    }
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
