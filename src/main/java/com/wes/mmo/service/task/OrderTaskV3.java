@@ -130,7 +130,7 @@ public class OrderTaskV3 extends Thread {
             Map<String, String> jsInfo = parseJavaScriptCode(orderJs, captchResult);
             for(int i = 0; i < threadNum; i++){
                 Thread thread = new EquementOrderThread(socket, jsInfo.get(FORM));
-                TaskCache.GetTaskCache().scheduleTask(thread, actionTime * 1000 - 12);
+                TaskCache.GetTaskCache().scheduleTask(thread, actionTime * 1000 );
             }
         }
         catch (Exception e) {
@@ -419,7 +419,7 @@ public class OrderTaskV3 extends Thread {
         public void run() {
             try {
                 this.webSocket.emit("yiqikong-reserv", form);
-                LOG.info("======> Send Form Data on "  + System.currentTimeMillis());
+                LOG.info("======> Send Form Data + " + form.toJSONString() + " on "  + System.currentTimeMillis());
                 Thread.sleep(10000);
                 if(this.webSocket.connected()) {
                     synchronized (this.webSocket) {
