@@ -46,7 +46,7 @@ public class TimeUtils {
         calendar.setTime(date);
         int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK) - 1 ;
         calendar.add(Calendar.DAY_OF_MONTH, -1 * dayOfWeek);
-        calendar.set(Calendar.HOUR, 0);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
         calendar.set(Calendar.MINUTE, 0);
         calendar.set(Calendar.SECOND, 0);
         return calendar.getTime();
@@ -56,8 +56,8 @@ public class TimeUtils {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
         int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK) - 1 ;
-        calendar.add(Calendar.DAY_OF_MONTH, (6 - dayOfWeek));
-        calendar.set(Calendar.HOUR, 0);
+        calendar.add(Calendar.DAY_OF_MONTH, (7 - dayOfWeek));
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
         calendar.set(Calendar.MINUTE, 0);
         calendar.set(Calendar.SECOND, 0);
         return calendar.getTime();
@@ -68,7 +68,7 @@ public class TimeUtils {
         calendar.setTime(date);
         int dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK) - 1 ;
         calendar.add(Calendar.DAY_OF_MONTH, 13 - dayOfWeek);
-        calendar.set(Calendar.HOUR, 0);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
         calendar.set(Calendar.MINUTE, 0);
         calendar.set(Calendar.SECOND, 0);
         return calendar.getTime();
@@ -85,7 +85,7 @@ public class TimeUtils {
     public static Date getToday(Date date){
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
-        calendar.set(Calendar.HOUR, 0);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
         calendar.set(Calendar.MINUTE, 0);
         calendar.set(Calendar.SECOND, 0);
         return calendar.getTime();

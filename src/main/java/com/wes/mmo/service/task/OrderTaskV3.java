@@ -207,7 +207,7 @@ public class OrderTaskV3 extends Thread {
             Date startDate, endDate;
             if(TimeUtils.getDayOfWeek(orderDate) == 7){
                 startDate = TimeUtils.getToday(orderDate);
-                endDate = TimeUtils.getNextSaturday(orderDate);
+                endDate = TimeUtils.getToday(orderDate);
             }
             else {
                 startDate = TimeUtils.getLastWeekSunday(orderDate);
