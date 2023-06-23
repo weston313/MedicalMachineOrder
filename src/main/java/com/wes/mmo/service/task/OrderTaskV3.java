@@ -115,7 +115,8 @@ public class OrderTaskV3 extends Thread {
         orderTableInfo = getOrderTableInfo(webClient, equementDetail.getOrderUrl(), startTime, endTime);
         String calendarTableId = "calweek_" + Utils.ConvertDecToHex((System.currentTimeMillis()) * 1048).toLowerCase();
         String captchResult = getSvgResultV2(calendarTableId, cookie);
-        String orderJs = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "1", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, captchResult, cookie);
+        Response response = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "仪器使用预约", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, captchResult, cookie);
+        String orderJs = parseJSCode(response);
         Map<String, String> jsInfo = parseJavaScriptCode(orderJs, captchResult);
         socket = createWebSocket(jsInfo.get(USER_ID), jsInfo.get(USER_NAME), jsInfo.get(TICKET), jsInfo.get(TICKET_ID));
     }
@@ -126,11 +127,14 @@ public class OrderTaskV3 extends Thread {
             LOG.info("======> Start Openning Web Socket on " + System.currentTimeMillis());
             String calendarTableId = "calweek_" + Utils.ConvertDecToHex((System.currentTimeMillis()) * 1049).toLowerCase();
             String captchResult = getSvgResultV2(calendarTableId, cookie);
-            String orderJs = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "1", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, captchResult, cookie);
+            Response response = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "仪器使用预约", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, captchResult, cookie);
+            long offset = System.currentTimeMillis() - (response.headers().getDate("Date").getTime());
+            LOG.info("======> Caculate Offset Time " + offset);
+            String orderJs = parseJSCode(response);
             Map<String, String> jsInfo = parseJavaScriptCode(orderJs, captchResult);
             for(int i = 0; i < threadNum; i++){
                 Thread thread = new EquementOrderThread(socket, jsInfo.get(FORM));
-                TaskCache.GetTaskCache().scheduleTask(thread, actionTime * 1000 );
+                TaskCache.GetTaskCache().scheduleTask(thread, actionTime * 1000 + offset);
             }
         }
         catch (Exception e) {
@@ -299,7 +303,7 @@ public class OrderTaskV3 extends Thread {
         }
     }
 
-    private String orderCaledarV2(String url, String name, long startTs, long endTs, String calendarId, String caledarTableId, String desc, String project, String captcha, Cookie cookie) throws IOException {
+    private Response orderCaledarV2(String url, String name, long startTs, long endTs, String calendarId, String caledarTableId, String desc, String project, String captcha, Cookie cookie) throws IOException {
 
         FormBody formBody = new FormBody.Builder()
                 .add("_ajax", "1")
@@ -326,6 +330,11 @@ public class OrderTaskV3 extends Thread {
                 .build();
 
         Response response = new OkHttpClient().newCall(request).execute();
+        return response;
+
+    }
+
+    public String parseJSCode(Response response) throws IOException {
         String responseContent = response.body().string();
         JSONObject resultObject=  JSON.parseObject(responseContent);
         // 获取ORDER JavaScript代码
