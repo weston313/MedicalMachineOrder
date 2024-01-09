@@ -114,10 +114,11 @@ public class OrderTaskV3 extends Thread {
         // create socket info
         orderTableInfo = getOrderTableInfo(webClient, equementDetail.getOrderUrl(), startTime, endTime);
         String calendarTableId = "calweek_" + Utils.ConvertDecToHex((System.currentTimeMillis()) * 1048).toLowerCase();
-        String captchResult = getSvgResultV2(calendarTableId, cookie);
-        Response response = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "仪器使用预约", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, captchResult, cookie);
-        String orderJs = parseJSCode(response);
-        Map<String, String> jsInfo = parseJavaScriptCode(orderJs, captchResult);
+        // String captchResult = getSvgResultV2(calendarTableId, cookie);
+        Response response = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "仪器使用预约", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, null, cookie);
+        String responseBody = response.body().string();
+        String orderJs = parseJSCode(responseBody);
+        Map<String, String> jsInfo = parseJavaScriptCode(orderJs, null);
         socket = createWebSocket(jsInfo.get(USER_ID), jsInfo.get(USER_NAME), jsInfo.get(TICKET), jsInfo.get(TICKET_ID));
     }
 
@@ -126,14 +127,17 @@ public class OrderTaskV3 extends Thread {
         try {
             LOG.info("======> Start Openning Web Socket on " + System.currentTimeMillis());
             String calendarTableId = "calweek_" + Utils.ConvertDecToHex((System.currentTimeMillis()) * 1049).toLowerCase();
-            String captchResult = getSvgResultV2(calendarTableId, cookie);
-            Response response = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "仪器使用预约", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, captchResult, cookie);
+            // String captchResult = getSvgResultV2(calendarTableId, cookie);
+            Response response = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "仪器使用预约", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, null, cookie);
+            String responseBody = response.body().string();
+            // LOG.info("======> Order caledar response " + responseBody);
             long offset = System.currentTimeMillis() - (response.headers().getDate("Date").getTime());
-            LOG.info("======> Caculate Offset Time " + offset);
-            String orderJs = parseJSCode(response);
-            Map<String, String> jsInfo = parseJavaScriptCode(orderJs, captchResult);
+            // LOG.info("======> Caculate Offset Time " + offset);
+            String orderJs = parseJSCode(responseBody);
+            LOG.info("======> Order Java Script " + orderJs);
+            Map<String, String> jsInfoMap = parseJavaScriptCode(orderJs, null);
             for(int i = 0; i < threadNum; i++){
-                Thread thread = new EquementOrderThread(socket, jsInfo.get(FORM));
+                Thread thread = new EquementOrderThread(socket, jsInfoMap);
                 TaskCache.GetTaskCache().scheduleTask(thread, actionTime * 1000 + offset);
             }
         }
@@ -318,7 +322,7 @@ public class OrderTaskV3 extends Thread {
                 .add("dtend", String.valueOf(endTs))
                 .add("description", desc)
                 .add("project", String.valueOf(0))
-                .add("captcha", captcha)
+                // .add("captcha", captcha)
                 .add("submit", "save")
                 .build();
 
@@ -334,11 +338,10 @@ public class OrderTaskV3 extends Thread {
 
     }
 
-    public String parseJSCode(Response response) throws IOException {
-        String responseContent = response.body().string();
+    public String parseJSCode(String  responseContent) throws IOException {
         JSONObject resultObject=  JSON.parseObject(responseContent);
         // 获取ORDER JavaScript代码
-        return  resultObject.getJSONObject("dialog").getString("data").trim();
+        return resultObject.getJSONObject("dialog").getString("data").trim();
     }
 
     private Map<String, String> parseJavaScriptCode(String jsCode, String captcha){
@@ -349,22 +352,35 @@ public class OrderTaskV3 extends Thread {
         for(String jsLine : jsCode.split("[\r\n]+")){
             if(jsLine.trim().startsWith(TICKET_ID)){
                 jsCodeInfo.put(TICKET_ID, jsLine.trim().split(":")[1].replaceAll("[',]+", ""));
-            }
-            else if(jsLine.trim().startsWith(TICKET)){
-                jsCodeInfo.put(TICKET, jsLine.trim().split(":")[1].replaceAll("[',]", ""));
-
-            }
-            else if(jsLine.trim().startsWith(USER_ID)) {
+            } else if(jsLine.trim().startsWith("ticket: '")){
+                String ticketValue = jsLine.trim()
+                        .split(":")[1]
+                        .trim().replaceAll("[',]", "");
+                LOG.info("======> Ticket Value " + ticketValue);
+                jsCodeInfo.put(TICKET, ticketValue);
+            } else if(jsLine.trim().startsWith("ticket: \"")) {
+                String ticketValue = jsLine.trim()
+                        .split(":")[1]
+                        .trim().replaceAll("[\"\\}\\s\t\\)]", "");
+                LOG.info("======> Ticket Value " + ticketValue);
+                jsCodeInfo.put(TICKET, ticketValue);
+            }else if(jsLine.trim().startsWith(USER_ID)) {
                 jsCodeInfo.put(USER_ID, jsLine.split(":")[1].replaceAll("[',]", ""));
-            }
-            else if(jsLine.trim().startsWith(USER_NAME)) {
+            } else if(jsLine.trim().startsWith(USER_NAME)) {
                 jsCodeInfo.put(USER_NAME, jsLine.split(":")[1].replaceAll("[',]", ""));
-            }
-            else if(jsLine.trim().startsWith("socket.emit('yiqikong-reserv',")){
-                String tmp = jsLine.trim().replaceAll("socket.emit\\('yiqikong-reserv',", "");
+            } else if(jsLine.trim().startsWith(FORM)) {
+                String tmp = jsLine.trim()
+                        .replace("form: \"", "");
                 String form = tmp.trim().substring(0, tmp.length() - 2);
+                form = JSONObject.parseObject(form.replace("\\", "")).toJSONString();
+                System.out.println("======> Form data " + form);
                 jsCodeInfo.put(FORM, form);
             }
+            // else if(jsLine.trim().startsWith("socket.emit('yiqikong-reserv',")){
+            //     String tmp = jsLine.trim().replaceAll("socket.emit\\('yiqikong-reserv',", "");
+            //     String form = tmp.trim().substring(0, tmp.length() - 2);
+            //     jsCodeInfo.put(FORM, form);
+            // }
         }
 
         return jsCodeInfo;
@@ -401,8 +417,11 @@ public class OrderTaskV3 extends Thread {
             @Override
             public void call(Object... objects) {
                 LOG.info("======> Error is " + objects[0] + " and reconnect.");
-                EngineIOException exception = (EngineIOException) objects[0];
-                LOG.info("=======> Error Exception " + exception.getCause());
+                for(Object object : objects) {
+                    EngineIOException exception = (EngineIOException) object;
+                    exception.printStackTrace(System.err);
+                    LOG.info("=======> Error Exception " + exception.getCause());
+                }
             }
         }).on(Socket.EVENT_CONNECT_ERROR, new Emitter.Listener() {
             @Override
@@ -417,18 +436,23 @@ public class OrderTaskV3 extends Thread {
 
     public class EquementOrderThread extends Thread {
         private Socket webSocket;
+        private Map<String, String> jsInfoMap;
         private JSONObject form;
 
-        public EquementOrderThread(Socket socket, String form) {
+        public EquementOrderThread(Socket socket, Map<String, String> jsInfoMap) {
             this.webSocket = socket;
-            this.form = JSON.parseObject(form);
+            this.jsInfoMap = jsInfoMap;
+            // this.form = JSON.parseObject(form);
         }
 
         @Override
         public void run() {
             try {
-                this.webSocket.emit("yiqikong-reserv", form);
-                LOG.info("======> Send Form Data + " + form.toJSONString() + " on "  + System.currentTimeMillis());
+                JSONObject object = new JSONObject();
+                object.put(FORM, jsInfoMap.get(FORM));
+                object.put(TICKET, jsInfoMap.get(TICKET));
+                this.webSocket.emit("yiqikong-reserv", object);
+                LOG.info("======> Send Form Data + " + object.toJSONString() + " on "  + System.currentTimeMillis());
                 Thread.sleep(10000);
                 if(this.webSocket.connected()) {
                     synchronized (this.webSocket) {
