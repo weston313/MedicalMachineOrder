@@ -2,6 +2,7 @@ package com.wes.mmo.service.task;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.html.*;
@@ -109,13 +110,13 @@ public class OrderTaskV3 extends Thread {
         // initlize web client
         webClient = createWebClient();
         cookie = webClient.getCookieManager().getCookie(COOKIE_NAME);
-        TaskCache.GetTaskCache().getScheduledExecutorService().scheduleAtFixedRate(new ClientHandleThread(webClient), 300, 300, TimeUnit.SECONDS);
+        TaskCache.GetTaskCache().getScheduledExecutorService().scheduleAtFixedRate(new ClientHandleThread(webClient), 60, 60, TimeUnit.SECONDS);
 
         // create socket info
         orderTableInfo = getOrderTableInfo(webClient, equementDetail.getOrderUrl(), startTime, endTime);
         String calendarTableId = "calweek_" + Utils.ConvertDecToHex((System.currentTimeMillis()) * 1048).toLowerCase();
-        // String captchResult = getSvgResultV2(calendarTableId, cookie);
-        Response response = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "仪器使用预约", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, null, cookie);
+        String captchResult = getSvgResultV2(calendarTableId, cookie);
+        Response response = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "仪器使用预约", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, captchResult, cookie);
         String responseBody = response.body().string();
         String orderJs = parseJSCode(responseBody);
         Map<String, String> jsInfo = parseJavaScriptCode(orderJs, null);
@@ -127,8 +128,8 @@ public class OrderTaskV3 extends Thread {
         try {
             LOG.info("======> Start Openning Web Socket on " + System.currentTimeMillis());
             String calendarTableId = "calweek_" + Utils.ConvertDecToHex((System.currentTimeMillis()) * 1049).toLowerCase();
-            // String captchResult = getSvgResultV2(calendarTableId, cookie);
-            Response response = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "仪器使用预约", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, null, cookie);
+            String captchResult = getSvgResultV2(calendarTableId, cookie);
+            Response response = orderCaledarV2(orderTableInfo.get("orderTableUrl"), "仪器使用预约", startTime, endTime,  orderTableInfo.get("calendarId"), calendarTableId, description, relationProject, captchResult, cookie);
             String responseBody = response.body().string();
             // LOG.info("======> Order caledar response " + responseBody);
             long offset = System.currentTimeMillis() - (response.headers().getDate("Date").getTime());
@@ -186,7 +187,7 @@ public class OrderTaskV3 extends Thread {
         @Override
         public void run() {
             try {
-                LOG.info("======> ClientHandleThread Heart Beat 5 Minutes.");
+                LOG.info("======> ClientHandleThread Heart Beat 1 Minutes.");
                 this.webClient.getPage(CookieManagerCache.GetCookieManagerCache().getIndexUrl());
             } catch (IOException e) {
                 e.printStackTrace();
@@ -322,7 +323,7 @@ public class OrderTaskV3 extends Thread {
                 .add("dtend", String.valueOf(endTs))
                 .add("description", desc)
                 .add("project", String.valueOf(0))
-                // .add("captcha", captcha)
+                .add("captcha", captcha)
                 .add("submit", "save")
                 .build();
 
@@ -369,18 +370,29 @@ public class OrderTaskV3 extends Thread {
             } else if(jsLine.trim().startsWith(USER_NAME)) {
                 jsCodeInfo.put(USER_NAME, jsLine.split(":")[1].replaceAll("[',]", ""));
             } else if(jsLine.trim().startsWith(FORM)) {
+                LOG.info("======> Parse json formt data.");
                 String tmp = jsLine.trim()
                         .replace("form: \"", "");
                 String form = tmp.trim().substring(0, tmp.length() - 2);
                 form = JSONObject.parseObject(form.replace("\\", "")).toJSONString();
                 System.out.println("======> Form data " + form);
                 jsCodeInfo.put(FORM, form);
-            }
-            // else if(jsLine.trim().startsWith("socket.emit('yiqikong-reserv',")){
-            //     String tmp = jsLine.trim().replaceAll("socket.emit\\('yiqikong-reserv',", "");
-            //     String form = tmp.trim().substring(0, tmp.length() - 2);
-            //     jsCodeInfo.put(FORM, form);
-            // }
+            } else if(jsLine.trim().startsWith("socket.emit('yiqikong-reserv',")){
+                LOG.info("======> Parse yiqikong json form data.");
+                 String tmp = jsLine.trim().replaceAll("socket.emit\\('yiqikong-reserv',", "");
+                 String reservData = tmp.trim().substring(0, tmp.length() - 2);
+                 LOG.info("======> Reserv json data " + reservData);
+                 try {
+                     ObjectMapper objectMapper = new ObjectMapper();
+                     objectMapper.createParser(reservData);
+                     JSONObject object = JSONObject.parseObject(reservData);
+                     String formStr = object.getString(FORM).replace("\\", "");
+                     LOG.info("======> Parse json form data " + formStr);
+                     jsCodeInfo.put(FORM, JSONObject.parseObject(formStr).toJSONString());
+                 } catch (Exception e) {
+                     LOG.info(e);
+                 }
+             }
         }
 
         return jsCodeInfo;

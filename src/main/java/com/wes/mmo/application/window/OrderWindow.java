@@ -123,7 +123,7 @@ public class OrderWindow {
                             relationProduct,
                             actionTimestamp / 1000
                     );
-                    TaskCache.GetTaskCache().scheduleTask(thread, actionTimestamp - 30*1000 + Double.valueOf(Math.random()*1000).longValue());
+                    TaskCache.GetTaskCache().scheduleTask(thread, actionTimestamp - 5*1000 + Double.valueOf(Math.random()*1000).longValue());
                 } catch (Exception e) {
                     e.printStackTrace();
                     LOG.info("======> " + e.getCause());
